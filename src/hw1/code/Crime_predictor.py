@@ -17,16 +17,15 @@ import sys, os, numpy, matplotlib.pyplot, pickle, math
 
 
 def main(args):
-    
-    lamda = 2
- #  response = args[2]
- #  matrix = args[3]
-    weights = numpy.array(numpy.random.normal(size=96), dtype=float)
-    output = 0
+    print 'hi'
+    lamda = 600
+
+   # weights = pickle.load(open("weights.obj","rb"))
+    weights = numpy.random.normal(size=96)
 
     df_train = pd.read_table('crime-train.txt')
-    for i in range(len(df_train.columns)):
-        df_train[df_train.columns[i]]/=math.sqrt(sum(df_train[df_train.columns[i]]**2))
+#     for i in range(len(df_train.columns)):
+#         df_train[df_train.columns[i]]/=math.sqrt(sum(df_train[df_train.columns[i]]**2))
 
     diff = 10e-5
     while( diff > 10e-6 ):
@@ -40,9 +39,10 @@ def main(args):
                 ### multiple our jth-weight times the data point at i
                 y_i =  numpy.matrix(weights) * numpy.matrix(df_train.iloc[i,0:]).T
                 sub_j = numpy.delete(numpy.matrix(weights),j) * numpy.delete(numpy.matrix(df_train.iloc[i,0:]),j).T
-                total = value * ( y_i - sub_j + weights[j]*value)   
+                total = value * (y_i - sub_j)   
                 c_j+= total
             c_j*=2
+            print c_j
             weight_old= weights[j]
             weights[j] = soft(c_j / a_j, lamda / a_j)
             diff = max(diff,abs(weights[j] - weight_old))
@@ -57,14 +57,11 @@ def main(args):
     print 'PctIlleg = ' + str(weights[df_train.columns.get_loc('PctIlleg')])
     print 'HousVacant = ' + str(weights[df_train.columns.get_loc('HousVacant')])
 
-#    pickle.dump(weights, open("weights.obj","wb"))
+    pickle.dump(weights, open("weights.obj","wb"))
 
 
 def soft(a,b):    
-    if ( abs(a) - b > 0):
-        return numpy.sign(a)*(abs(a) - b)
-    else:
-        return 0
+    return numpy.sign(a) * max(abs(a) - b, 0)
         
 
 if __name__ == '__main__':
