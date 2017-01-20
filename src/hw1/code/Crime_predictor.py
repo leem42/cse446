@@ -17,11 +17,10 @@ import sys, os, numpy, matplotlib.pyplot, pickle, math
 
 
 def main(args):
-    print 'hi'
-    lamda = 600
-
-   # weights = pickle.load(open("weights.obj","rb"))
-    weights = numpy.random.normal(size=96)
+    lamda = 300
+    print lamda
+    weights = pickle.load(open("weights.obj","rb"))
+    #weights = numpy.random.normal(size=96)
 
     df_train = pd.read_table('crime-train.txt')
 #     for i in range(len(df_train.columns)):
@@ -37,12 +36,13 @@ def main(args):
             ## at column j, accessing each value (ie. the ith value)
             for i,value in enumerate(df_train[df_train.columns[j]].values):
                 ### multiple our jth-weight times the data point at i
-                y_i =  numpy.matrix(weights) * numpy.matrix(df_train.iloc[i,0:]).T
-                sub_j = numpy.delete(numpy.matrix(weights),j) * numpy.delete(numpy.matrix(df_train.iloc[i,0:]),j).T
+                y_i = df_train.iloc[i,j]
+                #numpy.dot(weights,df_train.iloc[i,0:])  
+                #numpy.matrix(weights) * numpy.matrix(df_train.iloc[i,0:]).T
+                sub_j = numpy.dot(numpy.delete(weights,j), numpy.delete(df_train.iloc[i,0:],j))
                 total = value * (y_i - sub_j)   
                 c_j+= total
             c_j*=2
-            print c_j
             weight_old= weights[j]
             weights[j] = soft(c_j / a_j, lamda / a_j)
             diff = max(diff,abs(weights[j] - weight_old))
