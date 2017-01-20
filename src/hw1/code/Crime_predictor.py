@@ -20,29 +20,28 @@ def main(args):
     lamda = 300
     print lamda
     weights = pickle.load(open("weights.obj","rb"))
-    #weights = numpy.random.normal(size=96)
-
     df_train = pd.read_table('crime-train.txt')
-#     for i in range(len(df_train.columns)):
-#         df_train[df_train.columns[i]]/=math.sqrt(sum(df_train[df_train.columns[i]]**2))
+    df_train.drop("ViolentCrimesPerPop",axis=1)
+    response = pd.read_table('crime-train.txt').iloc[0:,0]
 
     diff = 10e-5
     while( diff > 10e-6 ):
         diff = None
-        for j in range(len(df_train.columns)):
+        for j in range(len(df_train.columns) ):
             # accessing feature j of design matrix df_train
             a_j = 2 * numpy.sum(df_train[df_train.columns[j]].values**2)
             c_j = 0
-            ## at column j, accessing each value (ie. the ith value)
+            #c_j = sum(x.iloc[:,j]*(response[:] - numpy.dot(df_train, weights) + x.iloc[:,j] * weights[j]))
+            c_j = 0
             for i,value in enumerate(df_train[df_train.columns[j]].values):
-                ### multiple our jth-weight times the data point at i
-                y_i = df_train.iloc[i,j]
-                #numpy.dot(weights,df_train.iloc[i,0:])  
-                #numpy.matrix(weights) * numpy.matrix(df_train.iloc[i,0:]).T
-                sub_j = numpy.dot(numpy.delete(weights,j), numpy.delete(df_train.iloc[i,0:],j))
+                ## multiple our jth-weight times the data point at i
+                y_i = response[j]
+                sub_j = numpy.dot(numpy.delete(weights,j ), numpy.delete(df_train.iloc[i,0:].as_matrix(),j))
                 total = value * (y_i - sub_j)   
                 c_j+= total
+            #l_j*=2    
             c_j*=2
+            #print c_j == l_j
             weight_old= weights[j]
             weights[j] = soft(c_j / a_j, lamda / a_j)
             diff = max(diff,abs(weights[j] - weight_old))
