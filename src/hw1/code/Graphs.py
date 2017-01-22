@@ -6,13 +6,13 @@ Created on Jan 16, 2017
 
 import matplotlib.pyplot, pickle
 import pandas as pd
+import numpy
 def main():
 
-    estimator = pickle.load( open("weights.obj","rb"))
-    print estimator
-    df_train = pd.read_table('crime-test.txt')
-    df_test = pd.read_table('crime-train.txt')
-    
+    estimator = pd.read_table('crime-test.txt').drop("ViolentCrimesPerPop",axis=1)
+    response_test = pd.read_table('crime-test.txt').iloc[0:,0]    
+    squared_error = sum( (numpy.dot(response_test,estimator) - response_test[:])**2)
+    print squared_error
     
     # 2. (10 points) The regularization paths (in one plot) for the coefficients for input variables agePct12t29,
     
