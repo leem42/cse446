@@ -34,19 +34,21 @@ def main(args):
         print 'ie. weights.obj will be outputted'
         sys.exit(0)
     
-    lamda = args[1]
-    if(args[2][len(args[2]) - 3:] == '.obj'):
+    lamda = float(args[1])
+    if(args[2][len(args[2]) - 3:] == 'obj'):
         weights = pickle.load(open(args[2],"rb"))
     elif(args[2] == 'zeros'):
         weights = numpy.zeros(95)
     elif(args[2] == 'normal'):
-        weights = numpy.random.normal(95)
+        weights = numpy.random.normal(size=95)
     else:
         print 'Error: Either a .obj file, zeros or normal was not specified for initial guess'
         sys.exit(0)
         
-    df_train = pd.read_table(args[3]).drop("ViolentCrimesPerPop",axis=1)
-    response = pd.read_table(args[3]).iloc[0:,0]
+    df_train = pd.read_table('crime-train.txt').drop("ViolentCrimesPerPop",axis=1)
+    response = pd.read_table('crime-train.txt').iloc[0:,0]
+    
+    
     diff = 10e-5
     
     while( diff > 10e-6 ):
@@ -60,7 +62,6 @@ def main(args):
             weights[j] = soft(fast_j / a_j, lamda / a_j)
             diff = max(diff,abs(weights[j] - weight_old))
      
-
     print weights
     pickle.dump(weights, open("weights.obj","wb"))
 
