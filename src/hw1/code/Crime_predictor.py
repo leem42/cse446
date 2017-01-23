@@ -3,29 +3,52 @@ Created on Jan 16, 2017
 
 @author: leem42
 
-   
+Crime Predictor Program performs a lasso regression on a data set in csv format. It accepts four arguments such it can
+be run from the command line as follows:
+    python Crime_predictor.py 600 weights.obj crime-train.txt
+    
+    -600 is value of lamda
+    -weights.obj represents the initial weights used for lamda, use 'zero' to set guess to all zeros, and 'normal' to set
+    guess to normal distribution'
+    -crime-train.txt represents the matrix X that will be read over
+    
+    output: weights.obj
                  
 '''
 
 
 from __future__ import division
 from json.encoder import INFINITY
-
 import pandas as pd 
 import sys, os, numpy, matplotlib.pyplot, pickle, math
 
 
-
 def main(args):
+    if(len(args) != 4):
+        print 'wrong number of parameters'
+        print 'arg1 = lamda, ie. 600'
+        print 'arg2= initial value of weights, use zeros to set guess as all zeros, normal for guess '
+        print '      from normal distribution or a .obj file'
+        print "arg3 = initial matrix X to use, ie. 'crime-train.txt' or 'crime-test.txt' "
+        print 'algorithm prints our final solution for vector of weights w and also outputs the object in a pickled form'
+        print 'ie. weights.obj will be outputted'
+        sys.exit(0)
     
-    lamda = 18.75
-    weights = pickle.load(open("weights.obj","rb"))
-
-    df_train = pd.read_table('crime-train.txt').drop("ViolentCrimesPerPop",axis=1)
-    response = pd.read_table('crime-train.txt').iloc[0:,0]
+    lamda = args[1]
+    if(args[2][len(args[2]) - 3:] == '.obj'):
+        weights = pickle.load(open(args[2],"rb"))
+    elif(args[2] == 'zeros'):
+        weights = numpy.zeros(95)
+    elif(args[2] == 'normal'):
+        weights = numpy.random.normal(95)
+    else:
+        print 'Error: Either a .obj file, zeros or normal was not specified for initial guess'
+        sys.exit(0)
+        
+    df_train = pd.read_table(args[3]).drop("ViolentCrimesPerPop",axis=1)
+    response = pd.read_table(args[3]).iloc[0:,0]
     diff = 10e-5
     
-#     print weights
     while( diff > 10e-6 ):
         diff = None
         for j in range(len(df_train.columns) ):
@@ -37,19 +60,8 @@ def main(args):
             weights[j] = soft(fast_j / a_j, lamda / a_j)
             diff = max(diff,abs(weights[j] - weight_old))
      
-    print  str(weights[df_train.columns.get_loc('agePct12t29')])
-    print  str(weights[df_train.columns.get_loc('pctWSocSec')])
-    print  str(weights[df_train.columns.get_loc('PctKids2Par')])
-    print  str(weights[df_train.columns.get_loc('PctIlleg')])
-    print  str(weights[df_train.columns.get_loc('HousVacant')])
-    print
+
     print weights
-    print max(weights), df_train.columns[numpy.where(weights == max(weights))[0][0]]
-    print min(weights), df_train.columns[numpy.where(weights == min(weights))[0][0]]
-    
-    test_matrix = pd.read_table('crime-test.txt').drop("ViolentCrimesPerPop",axis=1)
-    response_test = pd.read_table('crime-test.txt').iloc[0:,0]    
-    squared_error = sum( (numpy.dot(test_matrix,weights) - response_test[:])**2)
     pickle.dump(weights, open("weights.obj","wb"))
 
 def soft(a,b):    
