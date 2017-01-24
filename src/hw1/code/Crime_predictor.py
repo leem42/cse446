@@ -25,11 +25,13 @@ import sys, os, numpy, matplotlib.pyplot, pickle, math
 
 def main(args):
     if(len(args) != 4):
-        print 'wrong number of parameters'
+        print 'error: wrong number of parameters'
         print 'arg1 = lamda, ie. 600'
         print 'arg2= initial value of weights, use zeros to set guess as all zeros, normal for guess '
         print '      from normal distribution or a .obj file'
         print "arg3 = initial matrix X to use, ie. 'crime-train.txt' or 'crime-test.txt' "
+        print "example:"
+        print "python Crime_predictor.py 600 normal crime-train.txt"
         print 'algorithm prints our final solution for vector of weights w and also outputs the object in a pickled form'
         print 'ie. weights.obj will be outputted'
         sys.exit(0)
@@ -47,10 +49,7 @@ def main(args):
         
     df_train = pd.read_table('crime-train.txt').drop("ViolentCrimesPerPop",axis=1)
     response = pd.read_table('crime-train.txt').iloc[0:,0]
-    
-    
     diff = 10e-5
-    
     while( diff > 10e-6 ):
         diff = None
         for j in range(len(df_train.columns) ):
