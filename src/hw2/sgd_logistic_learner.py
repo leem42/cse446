@@ -36,7 +36,7 @@ def indicator(a):
         return 0
 
 def prob_exp(a,b):
-    dot = np.dot(a.T,b)
+    dot = np.dot(a.T,b) * -1
     denom = 1 + math.exp(dot)
     return 1.0 / (denom)
         
