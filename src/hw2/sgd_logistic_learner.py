@@ -8,6 +8,9 @@ import sys
 import numpy as np
 import pandas as pd
 import math
+import matplotlib
+import pylab
+from numpy import size
 
 def main():
     eta= 0.00001
@@ -16,7 +19,8 @@ def main():
     weights = np.zeros(len(train.columns))
     avg_loss = 0
     index = 1
-    
+    norms = []
+    losses = []
     for iteration in range(10):
             for i in range(len(response)):
                 actual = response[i]
@@ -29,12 +33,21 @@ def main():
                 avg_loss+= (np.dot(weightsCopy, x_i) - actual) ** 2
                 index+=1
                 if(index >= 100 and index % 100 == 0):
-                    print 'iteration ' + str(index)
-                    print avg_loss / index
+                    losses.append(avg_loss / index)
                 if(index % 500 == 0):
-                    print np.linalg.norm(weights)
+                    norms.append(np.linalg.norm(weights))
     
     print weights
+    x = range(0,5000,100)
+    matplotlib.pyplot.scatter(x,losses)
+    matplotlib.pyplot.title("Average Loss For Eta = " + str(eta))
+    matplotlib.pyplot.show()
+     
+    x_norms = range(0,10)
+    matplotlib.pyplot.scatter(x_norms,norms)
+    matplotlib.pyplot.title("Norms for W with Eta = " + str(eta))
+    matplotlib.pyplot.show()
+    
     
 def indicator(a):
     if(a == 1):
