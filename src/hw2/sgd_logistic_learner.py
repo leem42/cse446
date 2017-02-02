@@ -14,7 +14,7 @@ from numpy import size
 from scipy.odr.odrpack import Output
 
 def main():
-    eta= 0.0001
+    eta= 0.00001
     train = pd.read_csv('HW2_training_data.csv').drop("label", axis=1)
     train['bias'] = np.ones(len(train.iloc[:,0]))
     response = pd.read_csv('HW2_training_data.csv').iloc[0:,0]
@@ -35,20 +35,17 @@ def main():
             for i in range(len(response)):
                 actual = response[i] 
                 x_i = train.iloc[i,:]
-                weightsCopy = weights.copy()
+                prior = weights.copy()
                 weights = weights - eta * (x_i * ([response[i]] * 9 - prob_exp(weights,x_i)))
-#                 for j in range(len(train.columns)):
-#                     x_ij = train.iloc[i,j]
-#                     partial_j = weights[j] - (eta * x_ij * (indicator(actual) - prob_exp(weights, x_i)))
-#                     weights[j] = partial_j 
-                avg_loss+= (np.dot(weightsCopy, x_i) - actual) ** 2
-                index+=1
+                avg_loss+= (np.dot(prior, x_i) - actual) ** 2
                 if(index >= 100 and index % 100 == 0):
-                    losses.append(avg_loss / index)
+                    losses.append(avg_loss * 1.0 / index)
                     classifyPatients(test,weights, test_response, index)
                 if(index % 500 == 0):
                     norms.append(np.linalg.norm(weights))
-    
+                index+=1
+
+    print weights
     x = range(0,5000,100)
     matplotlib.pyplot.scatter(x,losses)
     matplotlib.pyplot.title("Average Loss For Eta = " + str(eta))
@@ -60,13 +57,12 @@ def main():
     matplotlib.pyplot.show()
 
 def classifyPatients(matrix, weights, actual, index):
-    classification = np.dot(matrix,weights)
-    classification = 1.0 / (1 + math.e **(classification))
-    print classification
-    output = classification > 0.5
-    actual = (actual == 1)
-    error = np.sum(np.equal(output,actual))
-    print len(actual) - error
+    classification = np.dot(matrix,weights) * -1
+    classification = 1 + math.e ** classification
+    classification = np.round(1.0 / classification)
+    classification = abs(actual - classification)
+    print  sum(classification)
+   
     
 def indicator(a):
     if(a == 1):
