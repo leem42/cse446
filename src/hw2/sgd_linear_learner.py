@@ -12,7 +12,7 @@ import pandas as pd
 
 def main():
         
-    eta= 0.001
+    eta= 0.00001
     
     train = pd.read_csv('HW2_training_data.csv').drop("label", axis=1)
     train['bias'] = np.ones(len(train.iloc[:,0])) 
@@ -39,6 +39,7 @@ def main():
             avg_loss+= (np.dot(prior, x_i) - actual) ** 2
             if(index >= 100 and index % 100 == 0):
                 losses.append(avg_loss / index)
+                classifyPatients(test,weights, test_response, index)
             if(index % 500 == 0):
                 norms.append(np.linalg.norm(weights))
             index+=1
@@ -55,12 +56,10 @@ def main():
 
 def classifyPatients(matrix, weights, actual, index):
     classification = np.dot(matrix,weights)
-    print classification
     output = classification >= 0.5
     actual = (actual == 1)
     error = np.sum(np.equal(output,actual))
-#     print index
-#     print len(actual) - error
+    print len(actual) - error
 
 
 

@@ -33,13 +33,14 @@ def main():
     
     for iteration in range(10):
             for i in range(len(response)):
-                actual = response[i]
+                actual = response[i] 
                 x_i = train.iloc[i,:]
                 weightsCopy = weights.copy()
-                for j in range(len(train.columns)):
-                    x_ij = train.iloc[i,j]
-                    partial_j = weights[j] - (eta * x_ij * (indicator(actual) - prob_exp(weights, x_i)))
-                    weights[j] = partial_j 
+                weights = weights - eta * (x_i * ([response[i]] * 9 - prob_exp(weights,x_i)))
+#                 for j in range(len(train.columns)):
+#                     x_ij = train.iloc[i,j]
+#                     partial_j = weights[j] - (eta * x_ij * (indicator(actual) - prob_exp(weights, x_i)))
+#                     weights[j] = partial_j 
                 avg_loss+= (np.dot(weightsCopy, x_i) - actual) ** 2
                 index+=1
                 if(index >= 100 and index % 100 == 0):
@@ -60,12 +61,12 @@ def main():
 
 def classifyPatients(matrix, weights, actual, index):
     classification = np.dot(matrix,weights)
+    classification = 1.0 / (1 + math.e **(classification))
     print classification
-    output = classification >= 0.5
+    output = classification > 0.5
     actual = (actual == 1)
     error = np.sum(np.equal(output,actual))
-#     print index
-#     print len(actual) - error
+    print len(actual) - error
     
 def indicator(a):
     if(a == 1):
