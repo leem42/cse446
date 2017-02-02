@@ -13,8 +13,15 @@ import pandas as pd
 def main():
         
     eta= 0.001
+    
     train = pd.read_csv('HW2_training_data.csv').drop("label", axis=1)
+    train['bias'] = np.ones(len(train.iloc[:,0])) 
     response = pd.read_csv('HW2_training_data.csv').iloc[0:,0]
+    
+    test = pd.read_csv('HW2_testing_data.csv').drop("label", axis=1)
+    test['bias'] = np.ones(len(test.iloc[:,0]))
+    test_response = pd.read_csv('HW2_testing_data.csv').iloc[0:,0]
+    
     weights = np.zeros(len(train.columns))
     avg_loss = 0
     losses = []
@@ -45,6 +52,17 @@ def main():
     matplotlib.pyplot.scatter(x_norms,norms)
     matplotlib.pyplot.title("Norms for W with Eta = " + str(eta))
     matplotlib.pyplot.show()
-        
+
+def classifyPatients(matrix, weights, actual, index):
+    classification = np.dot(matrix,weights)
+    print classification
+    output = classification >= 0.5
+    actual = (actual == 1)
+    error = np.sum(np.equal(output,actual))
+#     print index
+#     print len(actual) - error
+
+
+
 if __name__ == '__main__':
     main()
