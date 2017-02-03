@@ -2,6 +2,12 @@
 Created on Jan 30, 2017
 
 @author: leem42
+
+
+
+if 
+
+
 '''
 
 import sys
@@ -10,8 +16,7 @@ import pandas as pd
 import math
 import matplotlib
 import pylab
-from numpy import size
-from scipy.odr.odrpack import Output
+
 
 def main():
     eta= 0.00001
@@ -29,7 +34,6 @@ def main():
     index = 1
     norms = []
     losses = []
-    
     
     for iteration in range(10):
             for i in range(len(response)):
@@ -75,6 +79,5 @@ def prob_exp(a,b):
     denom = 1 + (math.e ** dot)
     return 1.0 / (denom)
         
-
 if __name__ == '__main__':
     main()
