@@ -50,6 +50,8 @@ def main():
                 index+=1
 
     print weights
+    for value in norms:
+        print value
     x = range(0,5000,100)
     matplotlib.pyplot.scatter(x,losses)
     matplotlib.pyplot.title("Average Loss For Eta = " + str(eta))
@@ -65,7 +67,7 @@ def classifyPatients(matrix, weights, actual, index):
     classification = 1 + math.e ** classification
     classification = np.round(1.0 / classification)
     classification = abs(actual - classification)
-    print  sum(classification)
+#     print  sum(classification)
    
     
 def indicator(a):

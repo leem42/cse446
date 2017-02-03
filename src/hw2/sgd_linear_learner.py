@@ -12,7 +12,7 @@ import math
 
 def main():
         
-    eta= 0.001
+    eta= 0.00001
     
     train = pd.read_csv('HW2_training_data.csv').drop("label", axis=1)
     train['bias'] = np.ones(len(train.iloc[:,0])) 
@@ -32,15 +32,17 @@ def main():
             actual = response[i]
             x_i = train.iloc[i,:]
             prior = weights.copy()
-            weights = weights + (-2 * eta * x_i * ([actual] * 9 - np.dot(weights,x_i)))
-            avg_loss+= (np.dot(prior, x_i) - actual) ** 2
+            weights = weights + (-2 * eta * x_i * ([actual] * 9 - np.round(np.dot(weights,x_i))))
+            avg_loss+= (np.round(np.dot(weights, x_i)) - actual) ** 2
             if(index >= 100 and index % 100 == 0):
                 losses.append(avg_loss / index)
                 classifyPatients(test,weights, test_response, index)
             if(index % 500 == 0):
                 norms.append(np.linalg.norm(weights))
             index+=1
-    print weights
+    for value in norms:
+        print value
+    
     x = range(0,5000,100)
     matplotlib.pyplot.scatter(x,losses)
     matplotlib.pyplot.title("Average Loss For Eta = " + str(eta))
@@ -57,8 +59,7 @@ def classifyPatients(matrix, weights, actual, index):
 #     classification = np.round(1.0 / classification)
 #     classification = abs(actual - classification)
     classification = np.dot(matrix,weights)
-    classification = np.round(classification)
-    
+    classification = sum(actual - np.round(classification) )
     print classification
 #     print  sum(classification)
    
