@@ -8,9 +8,11 @@ import matplotlib
 import pylab
 import numpy as np
 import pandas as pd
-import math
+import math, sys
 
 def main():
+        
+        
         
     eta= 0.00001
     
@@ -26,22 +28,22 @@ def main():
     avg_loss = 0
     losses = []
     norms = []
+    SSE = []
     index = 1
+    
+    
     for iteration in range(10):
         for i in range(len(response)):
             actual = response[i]
             x_i = train.iloc[i,:]
-            prior = weights.copy()
             weights = weights + (-2 * eta * x_i * ([actual] * 9 - np.round(np.dot(weights,x_i))))
             avg_loss+= (np.round(np.dot(weights, x_i)) - actual) ** 2
             if(index >= 100 and index % 100 == 0):
                 losses.append(avg_loss / index)
-                classifyPatients(test,weights, test_response, index)
+                SSE.append(classifyPatients(test,weights, test_response, index))
             if(index % 500 == 0):
                 norms.append(np.linalg.norm(weights))
             index+=1
-    for value in norms:
-        print value
     
     x = range(0,5000,100)
     matplotlib.pyplot.scatter(x,losses)
@@ -53,15 +55,16 @@ def main():
     matplotlib.pyplot.title("Norms for W with Eta = " + str(eta))
     matplotlib.pyplot.show()
 
+    x = range(0,5000,100)
+    matplotlib.pyplot.scatter(x,SSE)
+    matplotlib.pyplot.title("SSE For Linear With Eta = " + str(eta))
+    matplotlib.pyplot.show()
+
+
 def classifyPatients(matrix, weights, actual, index):
-#     classification = np.dot(matrix,weights) * -1
-#     classification = 1 + math.e ** classification
-#     classification = np.round(1.0 / classification)
-#     classification = abs(actual - classification)
     classification = np.dot(matrix,weights)
     classification = sum(actual - np.round(classification) )
-    print classification
-#     print  sum(classification)
+    return classification
    
 
 

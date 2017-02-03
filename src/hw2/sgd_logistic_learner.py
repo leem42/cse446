@@ -34,24 +34,23 @@ def main():
     index = 1
     norms = []
     losses = []
+    SSE = []
     
-    for iteration in range(10):
+    for iteration in range(200):
             for i in range(len(response)):
                 actual = response[i] 
                 x_i = train.iloc[i,:]
-                prior = weights.copy()
                 weights = weights - eta * (x_i * ([response[i]] * 9 - prob_exp(weights,x_i)))
-                avg_loss+= (np.dot(prior, x_i) - actual) ** 2
+                avg_loss+= (round(prob_exp(weights,x_i)) - actual) ** 2
                 if(index >= 100 and index % 100 == 0):
                     losses.append(avg_loss * 1.0 / index)
-                    classifyPatients(test,weights, test_response, index)
+                    SSE.append(classifyPatients(test,weights, test_response, index))
                 if(index % 500 == 0):
                     norms.append(np.linalg.norm(weights))
                 index+=1
 
     print weights
-    for value in norms:
-        print value
+
     x = range(0,5000,100)
     matplotlib.pyplot.scatter(x,losses)
     matplotlib.pyplot.title("Average Loss For Eta = " + str(eta))
@@ -61,13 +60,16 @@ def main():
     matplotlib.pyplot.scatter(x_norms,norms)
     matplotlib.pyplot.title("Norms for W with Eta = " + str(eta))
     matplotlib.pyplot.show()
+    
+    x = range(0,5000,100)
+    matplotlib.pyplot.scatter(x,SSE)
+    matplotlib.pyplot.title("SSE For Logisitic With Eta = " + str(eta))
+    matplotlib.pyplot.show()
 
 def classifyPatients(matrix, weights, actual, index):
-    classification = np.dot(matrix,weights) * -1
-    classification = 1 + math.e ** classification
-    classification = np.round(1.0 / classification)
+    classification = np.round(np.dot(matrix,weights))
     classification = abs(actual - classification)
-#     print  sum(classification)
+    return  sum(classification)
    
     
 def indicator(a):
