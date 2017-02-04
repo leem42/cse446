@@ -5,9 +5,6 @@ Created on Jan 30, 2017
 
 
 
-if 
-
-
 '''
 
 import sys
@@ -18,8 +15,19 @@ import matplotlib
 import pylab
 
 
-def main():
-    eta= 0.00001
+def main(args):
+    if(len(args) != 3):
+        print 'Error: Incorrect Parameters Entered'
+        print 'Please run program like the following:'
+        print '    python sgd_logistic_learner.py 0.8 10'
+        print 'first argument above is value for step size'
+        print 'second argument is for number of passes through the data'
+        print 'After execuction program will display three graphs: Average Loss, Magnitude Of Weights, and SSE'
+        sys.exit(0)
+    
+    eta= float(args[1])
+    ITERATIONS = int(args[2])
+    
     train = pd.read_csv('HW2_training_data.csv').drop("label", axis=1)
     train['bias'] = np.ones(len(train.iloc[:,0]))
     response = pd.read_csv('HW2_training_data.csv').iloc[0:,0]
@@ -36,7 +44,7 @@ def main():
     losses = []
     SSE = []
     
-    for iteration in range(200):
+    for iteration in range(ITERATIONS):
             for i in range(len(response)):
                 actual = response[i] 
                 x_i = train.iloc[i,:]
@@ -49,25 +57,24 @@ def main():
                     norms.append(np.linalg.norm(weights))
                 index+=1
 
-    print weights
 
-    x = range(0,5000,100)
+    x = range(0,ITERATIONS * 500,100)
     matplotlib.pyplot.scatter(x,losses)
     matplotlib.pyplot.title("Average Loss For Eta = " + str(eta))
     matplotlib.pyplot.show()
      
-    x_norms = range(0,10)
+    x_norms = range(0,ITERATIONS)
     matplotlib.pyplot.scatter(x_norms,norms)
     matplotlib.pyplot.title("Norms for W with Eta = " + str(eta))
     matplotlib.pyplot.show()
     
-    x = range(0,5000,100)
+    x = range(0,ITERATIONS * 500,100)
     matplotlib.pyplot.scatter(x,SSE)
     matplotlib.pyplot.title("SSE For Logisitic With Eta = " + str(eta))
     matplotlib.pyplot.show()
 
 def classifyPatients(matrix, weights, actual, index):
-    classification = np.round(np.dot(matrix,weights))
+    classification = np.round((np.dot(matrix,weights)))
     classification = abs(actual - classification)
     return  sum(classification)
    
@@ -81,7 +88,10 @@ def indicator(a):
 def prob_exp(a,b):
     dot = np.dot(a.T,b) * -1
     denom = 1 + (math.e ** dot)
-    return 1.0 / (denom)
-        
+    denom = 1.0 / denom
+    if(denom >= 0.5):
+        return np.float64(1)
+    else:
+        return np.float64(0)
 if __name__ == '__main__':
-    main()
+    main(sys.argv)

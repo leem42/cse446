@@ -10,11 +10,18 @@ import numpy as np
 import pandas as pd
 import math, sys
 
-def main():
+def main(args):
+    if(len(args) != 3):
+        print 'Error: Incorrect Parameters Entered'
+        print 'Please run program like the following:'
+        print '    python sgd_linear_learner.py 0.8 10'
+        print 'first argument, (0.8 in the ex.)  is value for step size'
+        print 'second argument, (10 in the ex.) is value for number of iterations'
+        print 'After execution program will display three graphs: Average Loss, Magnitude Of Weights, and SSE'
+        sys.exit(0)
         
-        
-        
-    eta= 0.00001
+    eta= float(args[1])
+    ITERATIONS = int(args[2])
     
     train = pd.read_csv('HW2_training_data.csv').drop("label", axis=1)
     train['bias'] = np.ones(len(train.iloc[:,0])) 
@@ -32,7 +39,7 @@ def main():
     index = 1
     
     
-    for iteration in range(10):
+    for iteration in range(ITERATIONS):
         for i in range(len(response)):
             actual = response[i]
             x_i = train.iloc[i,:]
@@ -45,17 +52,17 @@ def main():
                 norms.append(np.linalg.norm(weights))
             index+=1
     
-    x = range(0,5000,100)
+    x = range(0,500 * ITERATIONS,100)
     matplotlib.pyplot.scatter(x,losses)
     matplotlib.pyplot.title("Average Loss For Eta = " + str(eta))
     matplotlib.pyplot.show()    
     
-    x_norms = range(0,10)
+    x_norms = range(0,ITERATIONS)
     matplotlib.pyplot.scatter(x_norms,norms)
     matplotlib.pyplot.title("Norms for W with Eta = " + str(eta))
     matplotlib.pyplot.show()
 
-    x = range(0,5000,100)
+    x = range(0,500 * ITERATIONS,100)
     matplotlib.pyplot.scatter(x,SSE)
     matplotlib.pyplot.title("SSE For Linear With Eta = " + str(eta))
     matplotlib.pyplot.show()
@@ -70,4 +77,4 @@ def classifyPatients(matrix, weights, actual, index):
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv)
