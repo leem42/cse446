@@ -62,12 +62,14 @@ def exponential_kernel(u, v):
 def compute_y_hat(x_t, y_mistake, X_mistake, kernel):
     
     n_mistake = len(y_mistake)
-#     print("y has shape " + str(y_mistake.shape))
-#     print("X_mistake has shape" + str(X_mistake.shape))
+
     if not n_mistake:
         return sign(0)
     else:
-        return np.dot(y_mistake,kernel(X_mistake,x_t))
+#         out = 0
+#         for i in range(len(X_mistake)):
+#             out+=1
+        return sign(np.dot(y_mistake,kernel(X_mistake,x_t)))
      
 def sign(x): 
     if(x>=0):
@@ -102,10 +104,10 @@ def fit_perceptron(df, kernel):
         # is True with x[b]. Try it. Similarly, if X is an N-by-D matrix, you
         # can grab the rows of X where b is True with X[b].
         # Put in your values for these variables.
-        x_t = X[t,:]
-        y_t = y[t]
-        y_mistake = y[m]
-        X_mistake = X[m]
+        x_t = X[t,:] #row of x
+        y_t = y[t]  # value of specific data point
+        y_mistake = y[m] #all the y-values where a mistake was made
+        X_mistake = X[m] #rows of X where there was a mistake
         y_hat = compute_y_hat(x_t, y_mistake, X_mistake, kernel)
         if y_hat != y_t:
             m[t] = True         # Store the mistake if the model guessed wrong.
