@@ -45,11 +45,9 @@ def make_polynomial_kernel(d):
     pair of vectors (represented as 1-d Numpy arrays) u and v.
     """
     def kernel(u, v):
-        # TODO: Implement the polynomial kernel function.
-        pass
-
+        return (np.dot(u,v) + 1) ** d
+    
     return kernel
-
 
 def exponential_kernel(u, v):
     """
