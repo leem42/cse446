@@ -7,6 +7,7 @@ from __future__ import print_function
 import pandas as pd
 import numpy as np
 import matplotlib
+import math
 from sys import argv
 from matplotlib import pyplot as plt
 #plt.style.use("ggplot")
@@ -53,22 +54,25 @@ def exponential_kernel(u, v):
     """
     Computes the exponential kernel between vectors u and v, with sigma = 10.
     """
-    sigma = 10
-    # TODO: Implement the exponential kernel function.
-    pass
-
+    sigma = 10 
+    result = np.linalg.norm(np.subtract(u,v))
+    result = result/ -200
+    result = np.divide(result,2*(sigma**2)) 
+    return np.exp(result)
+   
 def compute_y_hat(x_t, y_mistake, X_mistake, kernel):
     
     n_mistake = len(y_mistake)
-
+    
     if not n_mistake:
         return sign(0)
     else:
-#         out = 0
-#         for i in range(len(X_mistake)):
-#             out+=1
-        return sign(np.dot(y_mistake,kernel(X_mistake,x_t)))
-     
+        vector = kernel(X_mistake,x_t)
+        vector = np.dot(y_mistake,vector)
+        vector = np.sum(vector)
+        return sign(vector)
+
+
 def sign(x): 
     if(x>=0):
         return 1
@@ -149,7 +153,7 @@ def run_polynomial_kernel():
 def run_poly_expon():
     "Analysis for part 3 of question 4.4."
     # TODO: Supply the best-performing degree for the polynomial kernel
-    best_degree = None          # Put in your value.
+    best_degree = 3          # Put in your value.
     data = get_data()
     test = data["test"]
     kernel_poly = make_polynomial_kernel(best_degree)
