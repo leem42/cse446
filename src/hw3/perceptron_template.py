@@ -1,5 +1,9 @@
 """
 Template to fit a perceptron to MNIST data.
+
+Michael Lee
+CSE 446
+
 """
 
 from __future__ import division
@@ -10,7 +14,7 @@ import matplotlib
 import math
 from sys import argv
 from matplotlib import pyplot as plt
-#plt.style.use("ggplot")
+plt.style.use("ggplot")
 
 IMG_SHAPE = [28, 28]                 # Shape of image.
 
@@ -56,7 +60,7 @@ def exponential_kernel(u, v):
     """
     sigma = 10 
     result = np.linalg.norm(np.subtract(u,v))
-    result = result/ -200
+    result = result/ (-2 * (sigma **2))
     result = np.divide(result,2*(sigma**2)) 
     return np.exp(result)
    
@@ -67,9 +71,9 @@ def compute_y_hat(x_t, y_mistake, X_mistake, kernel):
     if not n_mistake:
         return sign(0)
     else:
-        vector = kernel(X_mistake,x_t)
-        vector = np.dot(y_mistake,vector)
-        vector = np.sum(vector)
+        vector = kernel(X_mistake,x_t) #get a vector where each row is X_mistake _i * x_t_i
+        vector = np.dot(y_mistake,vector) #Multiply each vector by the value y_i
+        vector = np.sum(vector) #sum across the values
         return sign(vector)
 
 
