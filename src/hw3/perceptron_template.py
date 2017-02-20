@@ -60,8 +60,7 @@ def exponential_kernel(u, v):
     """
     sigma = 10 
     result = np.linalg.norm(np.subtract(u,v))
-    result = result/ (-2 * (sigma **2))
-    result = np.divide(result,2*(sigma**2)) 
+    result = -1*np.divide(result,2*(sigma**2)) 
     return np.exp(result)
    
 def compute_y_hat(x_t, y_mistake, X_mistake, kernel):
