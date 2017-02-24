@@ -34,7 +34,9 @@ def main(args):
     train =  train.drop("normalized_count", axis=1)
     train = train.drop("ParticipantBarcode",axis=1)
     train = train.drop("original_gene_symbol",axis=1)
-    train.iloc[:,7] = pd.to_numeric(train.iloc[:,7], errors='coerce')
+    
+    
+    
     
     test['bias'] = np.ones(len(test.iloc[:,0]))
     test_response = test.iloc[:,2]
@@ -49,7 +51,6 @@ def main(args):
     norms = []
     SSE = []
     index = 1
-    
     for iteration in range(ITERATIONS):
         print iteration
         for i in range(len(response)):
