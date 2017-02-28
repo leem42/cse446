@@ -110,16 +110,22 @@ def update(X, z, k):
     Update the cluster centroids given the new assignments. Return a kxD matrix
     of cluster centroids Mu.
     X is the NxD inputs as always.
-    z is the Nx1 vector of cluster assignments.
+    z is the Nx1 vector of cluster assignments. -- gives index for row i which cluster it belongs too
     k is the number of clusters.
     """
     # TODO: Compute the cluster centroids Mu.
-    
-    X_rows = len(X.iloc[:,0])
-    for i in range(0,k):
-        
-    
-    Mu = None
+    ## z = [1,2,3,...k,4,3,5,k-1]
+    N = len(X.iloc[:,0])
+    D = len(X.columnes)
+    Mu = np.zeros(shape = (k,D))
+    for i in range(0,N):
+        # get row i
+        row = X.iloc[i,:]
+        # ith value at z dictates what cluster it is in and which row to add it to for final average
+        cluster = z[i]
+        Mu[cluster,:] = Mu[cluster,:] + row
+    #Now take the average each cluster
+    Mu = Mu / N
     return Mu
 
 
@@ -128,8 +134,15 @@ def compute_distortion(X, Mu, z):
     Compute the distortion (i.e. within-group sum of squares) implied by NxD
     data X, kxD centroids Mu, and Nx1 assignments z.
     """
-    # TODO: Compute the within-group sum of squares (the distortion).
     distortion = None
+    N = len(X.iloc[:,0])
+    distortion = 0
+    for i in range(0,N):
+        row = X.iloc[i,:]
+        cluster = z[i]
+        error = np.square(np.linalg.norm(np.subtract(Mu.iloc[cluster,:],row)))
+        distortion+=error
+    
     return distortion
 
 
