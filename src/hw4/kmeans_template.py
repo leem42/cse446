@@ -140,9 +140,7 @@ def compute_distortion(X, Mu, z):
     for i in range(0,N):
         row = X.iloc[i,:]
         cluster = z[i]
-        error = np.square(np.linalg.norm(np.subtract(Mu.iloc[cluster,:],row)))
-        distortion+=error
-    
+        distortion+=np.square(np.linalg.norm(np.subtract(Mu.iloc[cluster,:],row))) 
     return distortion
 
 
@@ -158,7 +156,7 @@ def initialize(X, k):
 
 def label_clusters(y, k, z):
     """
-    Label each cluster with the digit that occurs most requently for points
+    Label each cluster with the digit that occurs most frequently for points
     assigned to that cluster.
     Return a kx1 vector labels with the label for each cluster.
     For instance: if 20 points assigned to cluster 0 have label "3", and 40 have
@@ -168,8 +166,24 @@ def label_clusters(y, k, z):
     k is the number of clusters
     z is the Nx1 vector of cluster assignments.
     """
-    # TODO: Compute the cluster labelings.
+
     labels = None
+    ## for each cluster we need to know which the number of points assigned to it
+    ## then we need to know what was assigned to that point
+    cluster_labels = {j: [] for j in range(k)}
+    for i in range(z):
+        cluster = z[i]
+        label = y[i]
+        if label not in cluster_labels[cluster]:
+            cluster_labels[cluster][label] = 0
+        cluster_labels[cluster][label] = cluster[cluster][labels] + 1
+        
+    for i,key in enumerate(cluster_labels):
+        #each key in the dictionary is the label and the value is the number of points for it
+        # for each cluster there is dict of label-value pairs, we choose the label with most value
+        label = max(cluster_labels[key], key=cluster_labels[key].get)
+        labels[i] = label
+    
     return labels
 
 
