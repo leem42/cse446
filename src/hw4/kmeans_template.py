@@ -15,7 +15,7 @@ def analyze_kmeans():
     y = np.genfromtxt("labels.txt", dtype=int)
     distortions = []
     errs = []
-    ks = range(1, 11)
+    ks = range(1, 11) #### MUST CHANGE BACK
     for k in ks:
         distortion, err = analyze_one_k(X, y, k)
         distortions.append(distortion)
@@ -93,13 +93,12 @@ def assign(X, Mu):
     X is the NxD matrix of inputs.
     Mu is the kxD matrix of cluster centroids.
     """
-    # TODO: Compute the assignments z.
-    mu_rows = len(Mu.iloc[:,0])
-    X_rows = len(X.iloc[:,0])
+    mu_rows = len(Mu[:,0])
+    X_rows = len(X[:,0])
     z = []
     for i in range(0,X_rows):
-        row = np.tile(X.iloc[i,:], mu_rows) 
-        minimum = np.argmin(np.subtract(Mu,row))
+        row = np.matrix([X[i,:]] * mu_rows)
+        minimum = np.argmin(np.square(np.linalg.norm(np.subtract(Mu,row),axis=1)))
         z.append(minimum)
     z = np.array(z)
     return z
@@ -113,14 +112,13 @@ def update(X, z, k):
     z is the Nx1 vector of cluster assignments. -- gives index for row i which cluster it belongs too
     k is the number of clusters.
     """
-    # TODO: Compute the cluster centroids Mu.
     ## z = [1,2,3,...k,4,3,5,k-1]
-    N = len(X.iloc[:,0])
-    D = len(X.columnes)
+    N = len(X[:,0])
+    D = len(X[0,:])
     Mu = np.zeros(shape = (k,D))
     for i in range(0,N):
         # get row i
-        row = X.iloc[i,:]
+        row = X[i,:]
         # ith value at z dictates what cluster it is in and which row to add it to for final average
         cluster = z[i]
         Mu[cluster,:] = Mu[cluster,:] + row
@@ -134,13 +132,12 @@ def compute_distortion(X, Mu, z):
     Compute the distortion (i.e. within-group sum of squares) implied by NxD
     data X, kxD centroids Mu, and Nx1 assignments z.
     """
-    distortion = None
-    N = len(X.iloc[:,0])
+    N = len(X[:,0])
     distortion = 0
     for i in range(0,N):
-        row = X.iloc[i,:]
+        row = X[i,:]
         cluster = z[i]
-        distortion+=np.square(np.linalg.norm(np.subtract(Mu.iloc[cluster,:],row))) 
+        distortion+=np.square(np.linalg.norm(np.subtract(Mu[cluster,:],row))) 
     return distortion
 
 
@@ -149,7 +146,7 @@ def initialize(X, k):
     Randomly initialize the kxD matrix of cluster centroids Mu. Do this by
     choosing k data points randomly from the data set X.
     """
-    subset = np.random.randint(len(X.iloc[:,0]),size=k)
+    subset = np.random.randint(len(X[:,0]),size=k)
     Mu = X[subset,:]
     return Mu
 
@@ -167,24 +164,26 @@ def label_clusters(y, k, z):
     z is the Nx1 vector of cluster assignments.
     """
 
-    labels = None
+    labels = [0] * k
     ## for each cluster we need to know which the number of points assigned to it
     ## then we need to know what was assigned to that point
-    cluster_labels = {j: [] for j in range(k)}
-    for i in range(z):
+    cluster_labels = {j: dict.fromkeys(range(k),0) for j in range(k)}
+    N = len(y)
+    for i in range(N):
         cluster = z[i]
         label = y[i]
         if label not in cluster_labels[cluster]:
             cluster_labels[cluster][label] = 0
-        cluster_labels[cluster][label] = cluster[cluster][labels] + 1
-        
+        cluster_labels[cluster][label] = cluster_labels[cluster][label] + 1
+
+    print cluster_labels
     for i,key in enumerate(cluster_labels):
         #each key in the dictionary is the label and the value is the number of points for it
         # for each cluster there is dict of label-value pairs, we choose the label with most value
         label = max(cluster_labels[key], key=cluster_labels[key].get)
         labels[i] = label
     
-    return labels
+    return np.array(labels)
 
 
 def compute_mistake_rate(y, clust):

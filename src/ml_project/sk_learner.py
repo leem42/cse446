@@ -13,6 +13,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import Ridge
 import pickle
 import re
+import pprint
 
 def main(args):
     args=[0,"0.0001","5"]
@@ -178,11 +179,13 @@ def main(args):
     ##################################
     pkl_file = open('patient_mutations.obj', 'rb')
     mutations = pickle.load(pkl_file)
-    new_mutations = []
     samples = len(train.iloc[:,0])
-    print len(train.iloc[:,0])
-    missing = set()
-    not_missing = set()
+    new_mutations = [0] * samples
+    train['NearestMutation'] = new_mutations
+    
+    missing_cr = set()
+    missing_id = set()   
+
     for row in range(0,samples):
         id = train.iloc[row,0]
         info = train.iloc[row,:]['locations']
@@ -190,25 +193,31 @@ def main(args):
         start = info[1]
         end = info[2]
         nearest = get_nearest(id,chromosome,start,end,mutations,train,row)
-        if(nearest != 'Nan'):
-            print nearest
-            not_missing.appened(id)
-            new_mutations.append(nearest)
+        if(nearest == 'No ID'):
+            missing_id.add(id)
         else:
-            missing.add(id)
-            
-    missing = missing.symmetric_difference()
-    for value in missing:
-        train = train[train.ParticipantBarcode != value]       
-             
-    print len(new_mutations)   
-    print len(train.iloc[:,0])
-    print len(missing)
-    train['nearest'] = new_mutations
+            missing_cr.add(id)
+            train.iloc[row,:]['NearestMutation'] = nearest
+        print row
+
+    ### Will just remove the ones with no id
+    print '>>> No ID'
+    for value in missing_id:
+        train = train[train.ParticipantBarcode != value]
     
-    new_mutations = []
+    print
+    print '>>> No Chromosome'
+    for value in missing_cr:
+        print value, pprint.pprint(mutations[value])
+    
+    
     samples = len(test.iloc[:,0])
-    missing = set()
+    new_mutations = [0] * samples
+    test['NearestMutation'] = new_mutations
+
+    missing_cr = set()
+    missing_id = set()
+    passing = set()
     for row in range(0,samples):
         id = test.iloc[row,0]
         info = test.iloc[row,10]
@@ -216,10 +225,23 @@ def main(args):
         start = info[1]
         end = info[2]
         nearest = get_nearest(id,chromosome,start,end,mutations,test,row)
-        if(nearest != 'Nan'):
-            missing.add(id)
-            new_mutations.append(nearest)
-    test['nearest'] = new_mutations
+        if(nearest == 'No ID'):
+            missing_id.add(id)
+        else:
+            missing_cr.add(id)
+            train.iloc[row,:]['NearestMutation'] = nearest
+        print row
+
+    ### Will just remove the ones with no id
+    print '>>> No ID'
+    for value in missing_id:
+        train = train[train.ParticipantBarcode != value]
+    
+    print
+    print '>>> No Chromosome'
+    for value in missing_cr:
+        print value, pprint.pprint(mutations[value])
+            
     
     clf7 = Ridge(alpha= 200)
     clf6 = Ridge(alpha=15)
@@ -274,10 +296,15 @@ def get_actual_location(relative,table):
         return  [out[0],out[1],out[2]]
 
 def get_nearest(id,chromosome,start,end,mutations,table,row):
-    try:    
-        mid = np.array([(start + end) / 2.0] * len(mutations[id][chromosome]))
-    except:
-        return 'Nan'
+    mid  = 0
+    if(id in mutations):
+        if(chromosome in mutations[id]):
+            mid = np.array([(start + end) / 2.0] * len(mutations[id][chromosome]))
+        else:
+            return 1000000
+    else:
+        return 'No ID'
+    
     list_mutations = np.array(sorted(mutations[id][chromosome]))
     shortest = np.min(mid - list_mutations)
     return shortest
