@@ -4,7 +4,7 @@ K-means clustering.
 
 import numpy as np
 from matplotlib import pyplot as plt
-
+import sys
 
 def analyze_kmeans():
     """
@@ -100,7 +100,6 @@ def assign(X, Mu):
         row = np.matrix([X[i,:]] * mu_rows)
         minimum = np.argmin(np.square(np.linalg.norm(np.subtract(Mu,row),axis=1)))
         z.append(minimum)
-    z = np.array(z)
     return z
 
 
@@ -116,14 +115,23 @@ def update(X, z, k):
     N = len(X[:,0])
     D = len(X[0,:])
     Mu = np.zeros(shape = (k,D))
+    points_per_cluster = dict.fromkeys(range(k),0)
     for i in range(0,N):
         # get row i
-        row = X[i,:]
+        row = X[i,:] * 1.0
         # ith value at z dictates what cluster it is in and which row to add it to for final average
         cluster = z[i]
         Mu[cluster,:] = Mu[cluster,:] + row
+        points_per_cluster[cluster] = points_per_cluster[cluster] + 1
     #Now take the average each cluster
-    Mu = Mu / N
+    
+    for cluster in range(k):
+        try:
+            Mu[cluster,:] = Mu[cluster,:] / points_per_cluster[cluster]
+        except:
+            print Mu[cluster,:]
+            print points_per_cluster[cluster]
+            sys.exit(0)
     return Mu
 
 
