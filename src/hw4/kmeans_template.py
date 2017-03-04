@@ -15,7 +15,7 @@ def analyze_kmeans():
     y = np.genfromtxt("labels.txt", dtype=int)
     distortions = []
     errs = []
-    ks = range(1, 11) #### MUST CHANGE BACK
+    ks = range(1, 11) 
     for k in ks:
         distortion, err = analyze_one_k(X, y, k)
         distortions.append(distortion)
@@ -124,14 +124,10 @@ def update(X, z, k):
         Mu[cluster,:] = Mu[cluster,:] + row
         points_per_cluster[cluster] = points_per_cluster[cluster] + 1
     #Now take the average each cluster
-    
+    np.seterr(divide='ignore', invalid='ignore')
     for cluster in range(k):
-        try:
-            Mu[cluster,:] = Mu[cluster,:] / points_per_cluster[cluster]
-        except:
-            print Mu[cluster,:]
-            print points_per_cluster[cluster]
-            sys.exit(0)
+        Mu[cluster,:] = Mu[cluster,:] / np.array(points_per_cluster[cluster], dtype=np.float128)
+
     return Mu
 
 
@@ -184,7 +180,6 @@ def label_clusters(y, k, z):
             cluster_labels[cluster][label] = 0
         cluster_labels[cluster][label] = cluster_labels[cluster][label] + 1
 
-    print cluster_labels
     for i,key in enumerate(cluster_labels):
         #each key in the dictionary is the label and the value is the number of points for it
         # for each cluster there is dict of label-value pairs, we choose the label with most value
