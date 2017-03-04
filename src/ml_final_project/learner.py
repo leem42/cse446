@@ -14,6 +14,7 @@ from sklearn import tree
 import pickle
 import re
 import pprint
+from sklearn.linear_model.sgd_fast import Classification
 
 class Node(object):
     def __init__(self):
@@ -31,7 +32,12 @@ class Node(object):
         
     def add_right(self, data):
         self.right = Node(data)
-    
+
+
+
+####################################
+#    Build Decision Tree          #
+####################################
 def decision_tree(X, FeaturesToUse):
         current = Node()
         examples = X['response']
@@ -42,7 +48,7 @@ def decision_tree(X, FeaturesToUse):
         elif(classification == len(examples)):
             current.classification = 1
             return current
-        if(len(FeaturesToUse) == 0):    #### REPLACE WITH ACTUAL
+        if(len(FeaturesToUse) == 0):    #
             if(classification > len(examples) * 0.5):
                 current.classification = 1
             else:
@@ -51,15 +57,19 @@ def decision_tree(X, FeaturesToUse):
         # recursive case
         feature_index, value_of_split = find_best_feature(X,FeaturesToUse)
         column_name = X.columns[feature_index]
-        FeaturesToUse = FeaturesToUse.remove(feature_index)
+        del FeaturesToUse[column_name]
         # Divide X into two chunks: less than split and greater or equal to the split
-        left_data = X[X.column_name < value_of_split]    
-        right_data = X[X.column_name >=value_of_split]
+        print "Feature: " + str(column_name)
+        print "Value of Feature: " + str(value_of_split)
+        print
+        left_data = X[X[column_name] < value_of_split]    
+        right_data = X[X[column_name] >=value_of_split]
         current.feature_index = feature_index
         current.feature_value = value_of_split
         current.left = decision_tree(left_data, FeaturesToUse)
         current.right = decision_tree(right_data, FeaturesToUse) 
         return current
+    
 ##############################################
 #    Find the best feature to first split on #
 #    For a specific subtree                  #
@@ -70,7 +80,7 @@ def find_best_feature(X,FeaturesToUse):
     value_of_split = None
     for feature in FeaturesToUse:
         #### Sort features into new columns
-        sorted_features = np.sort(X.iloc[:,feature])
+        sorted_features = np.sort(X[feature])
         additional_vector = sorted_features.copy()
         additional_vector = additional_vector[1:]
         sorted_features = sorted_features[0:len(sorted_features) - 1]
@@ -81,6 +91,7 @@ def find_best_feature(X,FeaturesToUse):
         if(min_split_error < min_feature_error):
             min_feature_error = min_split_error
             value_of_split = val_split
+            feature_index = feature
     
     return feature_index, value_of_split
             
@@ -96,9 +107,9 @@ def min_error_split(X,ToSplitOn,feature):
         error = 0
         val = ToSplitOn[i]
         classification = X.iloc[:,feature]
-        classification = classification[classification < val]
-        ones = classification.count(1)
-        zeros = classification.count(0)
+        classification = classification[classification >= val]
+        ones = sum(classification)
+        zeros = len(X.iloc[:,feature]) - ones
         error = 0
         if(ones >= zeros):
             error = sum(response - np.ones(len(X.iloc[:,0])))
@@ -111,20 +122,23 @@ def min_error_split(X,ToSplitOn,feature):
     val_of_split = X.iloc[minErrorIndex,feature]
     return val_of_split, minError
             
-            
-def get_majority_class(current, Y): 
-    left_class_zero = np.zeros(len(current.points))  
-    error_left_zero = np.sum(np.abs(Y[current.points] - left_class_zero))
-    left_class_one = np.ones(len(current.points))  
-    error_left_one = np.sum(np.abs(Y[current.points] - left_class_one))
-    decision = 0 if error_left_zero > error_left_one else 1
-    return decision
-            
-def traverse_tree_for_point(observation, root, Y):
-    pass
+def classify_data(X,root):
+    error = 0
+    if(root.left == None and root.right == None):
+        classification = root.classification
+        computed_response = np.ones(len(X.iloc[:,0])) * classification
+        error = X['response'] - computed_response
+        return error
+     
+    feature_index = root.feature_index
+    feature_value = root.feature_value
+    column_name = X.columns[feature_index]
+    left_data = X[X[column_name] < feature_value]    
+    right_data = X[X[column_name] >=feature_value]
+    error+=classify_data(left_data, root.left)
+    error+=classify_data(right_data, root.right)
+    return error 
         
-    
-    
 def main():
 
     #######################################
@@ -162,32 +176,28 @@ def main():
     #######################################
     #    Decision Tree Learner            #
     #######################################  
-    FeaturesToUse = range(len(train.iloc[0,:]))
+    train = train.iloc[range(10),:]
+    FeaturesToUse = train.columns
+    print FeaturesToUse
     root = decision_tree(train.copy(), FeaturesToUse)
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    #######################################
+    #    Decision Tree Classify            #
+    #######################################      
+    error = classify_data(test, root)
+    print error
     
     
     
     #######################################
     #    The Dream                       #
     #######################################  
-    clf = tree.DecisionTreeClassifier()
-    clf = clf.fit(train, Y)
-    error = sum(np.square(test_response - clf.predict(test))) 
-    
-    print error
-    print len(test_response)
+#     clf = tree.DecisionTreeClassifier()
+#     clf = clf.fit(train, Y)
+#     error = sum(np.square(test_response - clf.predict(test))) 
+#     
+#     print error
+#     print len(test_response)
 
 
 
