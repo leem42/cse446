@@ -16,6 +16,17 @@ import re
 import pprint
 from sklearn.linear_model.sgd_fast import Classification
 
+
+
+TRAININING_DATA = pickle.load(open('train_with_nearest.obj', 'rb'))
+RESULT = pickle.load(open('response_train_updated.obj', 'rb'))
+TRAININING_DATA = TRAININING_DATA.iloc[0:10,:]
+RESULT = RESULT[0:10]
+for i in range(len(RESULT)):
+        RESULT[i] = RESULT[i] > 600
+TRAININING_DATA['response'] = RESULT
+
+
 class Node(object):
     def __init__(self):
         self.left = None
@@ -24,16 +35,27 @@ class Node(object):
         self.feature_value = None
         self.classification = None
     
-    def add_point(self,point):
-        self.points.append(point)
-
-    def add_left(self, data):
-        self.left = Node(data)
+    def print_me(self,level):
+        if(self == None):
+            print "None"
+        out = str(self.feature_index) + '  \nValue: ' + str(self.feature_value) 
+        print "\t"*level+str(out)+"\n"
+        if(self.left == None):
+            print "\t"*level+str("None")+"\n"
+        elif(self.right == None):
+            print "\t"*level+str("None")+"\n"
+        else:
+            self.left.print_me(level+1)
+            self.right.print_me(level + 1)
         
-    def add_right(self, data):
-        self.right = Node(data)
 
 
+def simpleBuildTree(level):
+    if(level == 0):
+        return None
+    root = Node()
+    root.left = simpleBuildTree(level - 1)
+    return root
 
 ####################################
 #    Build Decision Tree          #
@@ -48,26 +70,52 @@ def decision_tree(X, FeaturesToUse):
         elif(classification == len(examples)):
             current.classification = 1
             return current
-        if(len(FeaturesToUse) == 0):    #
-            if(classification > len(examples) * 0.5):
+        if(len(FeaturesToUse) == 1):    #
+            if(classification >= len(examples) * 0.5):
                 current.classification = 1
             else:
-                current.classifcation = 0
+                current.classification = 0
             return current
         # recursive case
         feature_index, value_of_split = find_best_feature(X,FeaturesToUse)
-        column_name = X.columns[feature_index]
-        del FeaturesToUse[column_name]
-        # Divide X into two chunks: less than split and greater or equal to the split
+        column_name = feature_index
+        FeaturesToUse = FeaturesToUse.drop(column_name)
+#         Divide X into two chunks: less than split and greater or equal to the split
         print "Feature: " + str(column_name)
         print "Value of Feature: " + str(value_of_split)
-        print
-        left_data = X[X[column_name] < value_of_split]    
-        right_data = X[X[column_name] >=value_of_split]
+#         print
+        left_data = X[X[column_name] <=  value_of_split]    
+        right_data = X[X[column_name] > value_of_split]
+        go_left = True
+        go_right =True
+        if(left_data.shape[0] == 0):
+            current.left = Node()
+            classification =sum(TRAININING_DATA['response'])
+            decision = None
+            if(classification < 0.5 * len(X.iloc[:,0])):
+                decision = 0
+            else:
+                decision = 1
+            go_left = False
+            current.left.classification = decision
+        if(right_data.shape[0] == 0):
+            current.right = Node()
+            classification =sum(TRAININING_DATA['response'])
+            decision = None
+            if(classification < 0.5 * len(X.iloc[:,0])):
+                decision = 0
+            else:
+                decision = 1
+            current.right.feature_index
+            current.right.classification = decision
+            go_right = False
         current.feature_index = feature_index
         current.feature_value = value_of_split
-        current.left = decision_tree(left_data, FeaturesToUse)
-        current.right = decision_tree(right_data, FeaturesToUse) 
+        if(go_left):
+            current.left = decision_tree(left_data, FeaturesToUse)
+        if(go_right):
+            current.right = decision_tree(right_data, FeaturesToUse) 
+
         return current
     
 ##############################################
@@ -75,10 +123,11 @@ def decision_tree(X, FeaturesToUse):
 #    For a specific subtree                  #
 ##############################################
 def find_best_feature(X,FeaturesToUse):
-    min_feature_error = 999999999
+    min_feature_error = 999999999999
     feature_index = 0
     value_of_split = None
-    for feature in FeaturesToUse:
+    SansResponse = FeaturesToUse.drop("response")
+    for feature in SansResponse:
         #### Sort features into new columns
         sorted_features = np.sort(X[feature])
         additional_vector = sorted_features.copy()
@@ -92,7 +141,7 @@ def find_best_feature(X,FeaturesToUse):
             min_feature_error = min_split_error
             value_of_split = val_split
             feature_index = feature
-    
+
     return feature_index, value_of_split
             
         
@@ -106,12 +155,12 @@ def min_error_split(X,ToSplitOn,feature):
     for i in range(len(ToSplitOn)):
         error = 0
         val = ToSplitOn[i]
-        classification = X.iloc[:,feature]
+        classification = X[feature]
         classification = classification[classification >= val]
         ones = sum(classification)
-        zeros = len(X.iloc[:,feature]) - ones
+        zeros = len(X[feature]) - ones
         error = 0
-        if(ones >= zeros):
+        if(ones > zeros):
             error = sum(response - np.ones(len(X.iloc[:,0])))
         else:
             error = sum(response - np.zeros(len(X.iloc[:,0])))
@@ -119,22 +168,23 @@ def min_error_split(X,ToSplitOn,feature):
             minError = error
             minErrorIndex = i
     
-    val_of_split = X.iloc[minErrorIndex,feature]
+    val_of_split = X[feature].iloc[minErrorIndex]
     return val_of_split, minError
             
 def classify_data(X,root):
     error = 0
-    if(root.left == None and root.right == None):
+    if(root.left is None and root.right is None):
+        if(X.shape[0] == 0):
+            return 0
         classification = root.classification
         computed_response = np.ones(len(X.iloc[:,0])) * classification
-        error = X['response'] - computed_response
+        error = sum(X['response'] - computed_response)
         return error
      
-    feature_index = root.feature_index
     feature_value = root.feature_value
-    column_name = X.columns[feature_index]
-    left_data = X[X[column_name] < feature_value]    
-    right_data = X[X[column_name] >=feature_value]
+    column_name = root.feature_index
+    left_data = X[X[column_name] <= feature_value]    
+    right_data = X[X[column_name] > feature_value]
     error+=classify_data(left_data, root.left)
     error+=classify_data(right_data, root.right)
     return error 
@@ -149,6 +199,8 @@ def main():
           
     train_file = open('response_train_updated.obj', 'rb')
     response = pickle.load(train_file)
+      
+
       
     train_file = open('test_with_nearest.obj', 'rb')
     test = pickle.load(train_file)
@@ -171,20 +223,24 @@ def main():
         Y[i] = response[i] > 600
     for i in range(len(test_response[:])):
         test_response[i] = test_response[i] > 600
-    
+        
+    train['response'] = Y
+    test['response'] = test_response
     
     #######################################
     #    Decision Tree Learner            #
     #######################################  
     train = train.iloc[range(10),:]
     FeaturesToUse = train.columns
-    print FeaturesToUse
-    root = decision_tree(train.copy(), FeaturesToUse)
-    
+    df = pd.DataFrame.from_items([('A', [1, 1, 0, 0]), ('B', [1, 1, 1,1])])
+    df['response'] = [1,1,0,0]
+    root = decision_tree(df, df.columns)
     #######################################
     #    Decision Tree Classify            #
-    #######################################      
-    error = classify_data(test, root)
+    #######################################  
+    print
+    print
+    error = classify_data(train, root)
     print error
     
     
