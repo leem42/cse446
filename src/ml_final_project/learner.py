@@ -242,7 +242,7 @@ def main():
     train = train.iloc[:,:]
 
     root = decision_tree(train, train.columns)
-    trained_root = open('trained_root.obj', 'wb')
+    trained_root = open('trained_root_diff.obj', 'wb')
     pickle.dump(root,trained_root)
       
     #######################################
