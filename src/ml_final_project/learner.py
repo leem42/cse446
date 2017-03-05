@@ -21,10 +21,8 @@ from sklearn.linear_model.sgd_fast import Classification
 
 TRAININING_DATA = pickle.load(open('train_with_nearest.obj', 'rb'))
 RESULT = pickle.load(open('response_train_updated.obj', 'rb'))
-TRAININING_DATA = TRAININING_DATA.iloc[0:10,:]
-RESULT = RESULT[0:10]
-for i in range(len(RESULT)):
-        RESULT[i] = RESULT[i] > 600
+RESULT = np.array(RESULT)
+RESULT = (RESULT > 600).astype(int)
 TRAININING_DATA['response'] = RESULT
 
 
@@ -80,6 +78,7 @@ def decision_tree(X, FeaturesToUse):
         # recursive case
         feature_index, value_of_split = find_best_feature(X,FeaturesToUse)
         column_name = feature_index
+        print column_name
         FeaturesToUse = FeaturesToUse.drop(column_name)
 #         Divide X into two chunks: less than split and greater or equal to the split
         print "Feature: " + str(column_name)
@@ -143,7 +142,8 @@ def find_best_feature(X,FeaturesToUse):
             min_feature_error = min_split_error
             value_of_split = val_split
             feature_index = feature
-
+    if(feature_index == 0):
+        print
     return feature_index, value_of_split
             
         
@@ -157,7 +157,7 @@ def min_error_split(X,ToSplitOn,feature):
     for i, val in enumerate(ToSplitOn):
         error = 0
         classification = X[feature]
-        classification = classification[classification >= val]
+        classification = (classification >= val).astype(int)
         error = sum(abs(classification - response))
 #         ones = sum(classification)
 #         zeros = len(X[feature]) - ones
@@ -180,13 +180,13 @@ def classify_data(X,root):
             return 0
         classification = root.classification
         computed_response = np.ones(len(X.iloc[:,0])) * classification
-        error = sum(X['response'] - computed_response)
+        error = sum(np.abs(X['response'] - computed_response))
         return error
      
     feature_value = root.feature_value
     column_name = root.feature_index
-    left_data = X[X[column_name] <= feature_value]    
-    right_data = X[X[column_name] > feature_value]
+    left_data = X[X[column_name] < feature_value]    
+    right_data = X[X[column_name] >= feature_value]
     error+=classify_data(left_data, root.left)
     error+=classify_data(right_data, root.right)
     return error 
@@ -230,23 +230,30 @@ def main():
     test['response'] = test_response
     
     #######################################
-    #    Decision Tree Learner            #
+    #    Test Tree Learner            #
+    ####################################### 
+#     df = pd.DataFrame.from_items([('A', [1, 1, 1, 1]), ('B', [1, 1, 1,1])])
+#     df['response'] = [1,1,0,0]
+#     print df
+
+    #######################################
+    #    Decision Tree Learner   Train    #
     #######################################  
-    train = train.iloc[range(10),:]
-    FeaturesToUse = train.columns
-    df = pd.DataFrame.from_items([('A', [1, 1, 0, 0]), ('B', [1, 1, 1,1])])
-    df['response'] = [1,1,0,0]
-    print df
-    root = decision_tree(df, df.columns)
+    train = train.iloc[:,:]
+
+    root = decision_tree(train, train.columns)
+    trained_root = open('trained_root.obj', 'wb')
+    pickle.dump(root,trained_root)
+      
     #######################################
     #    Decision Tree Classify            #
     #######################################  
     print
-    print
-#     error = classify_data(train, root)
-#     print error
-    
-    
+    error = classify_data(train, root)
+    print error
+    test = test.iloc[:,:]
+    error = classify_data(test, root)
+    print error
     
     #######################################
     #    The Dream                       #
