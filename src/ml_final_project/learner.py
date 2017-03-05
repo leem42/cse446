@@ -3,6 +3,7 @@ Created on Mar 2, 2017
 
 @author: leem42
 '''
+from __future__ import division
 import matplotlib
 import pylab
 import numpy as np
@@ -84,8 +85,8 @@ def decision_tree(X, FeaturesToUse):
         print "Feature: " + str(column_name)
         print "Value of Feature: " + str(value_of_split)
 #         print
-        left_data = X[X[column_name] <=  value_of_split]    
-        right_data = X[X[column_name] > value_of_split]
+        left_data = X[X[column_name] <  value_of_split]    
+        right_data = X[X[column_name] >= value_of_split]
         go_left = True
         go_right =True
         if(left_data.shape[0] == 0):
@@ -134,7 +135,8 @@ def find_best_feature(X,FeaturesToUse):
         additional_vector = additional_vector[1:]
         sorted_features = sorted_features[0:len(sorted_features) - 1]
         #### to_split_on is potential values to splot with
-        to_split_on = np.divide(np.add(sorted_features,additional_vector),2) 
+        ### May get many of the same feature, so we choose only unique splits
+        to_split_on = set(np.divide(np.add(sorted_features,additional_vector),2.0) )
         #### get the best feature by its best possible min error
         val_split, min_split_error = min_error_split(X, to_split_on, feature)
         if(min_split_error < min_feature_error):
@@ -152,18 +154,18 @@ def min_error_split(X,ToSplitOn,feature):
     minErrorIndex = 0
     response = X['response']
     
-    for i in range(len(ToSplitOn)):
+    for i, val in enumerate(ToSplitOn):
         error = 0
-        val = ToSplitOn[i]
         classification = X[feature]
         classification = classification[classification >= val]
-        ones = sum(classification)
-        zeros = len(X[feature]) - ones
-        error = 0
-        if(ones > zeros):
-            error = sum(response - np.ones(len(X.iloc[:,0])))
-        else:
-            error = sum(response - np.zeros(len(X.iloc[:,0])))
+        error = sum(abs(classification - response))
+#         ones = sum(classification)
+#         zeros = len(X[feature]) - ones
+#         error = 0
+#         if(ones > zeros):
+#             error = sum(np.abs(response - np.ones(len(X.iloc[:,0]))))
+#         else:
+#             error = sum(np.abs(response - np.zeros(len(X.iloc[:,0]))))
         if(error < minError):
             minError = error
             minErrorIndex = i
@@ -234,14 +236,15 @@ def main():
     FeaturesToUse = train.columns
     df = pd.DataFrame.from_items([('A', [1, 1, 0, 0]), ('B', [1, 1, 1,1])])
     df['response'] = [1,1,0,0]
+    print df
     root = decision_tree(df, df.columns)
     #######################################
     #    Decision Tree Classify            #
     #######################################  
     print
     print
-    error = classify_data(train, root)
-    print error
+#     error = classify_data(train, root)
+#     print error
     
     
     
