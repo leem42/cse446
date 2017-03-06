@@ -46,7 +46,7 @@ def main():
     test = test.drop("locations",axis=1)
 
     ####################################
-    #  Convert response to 0,1 values  #
+    #  Convert response to -1,1 values  #
     ####################################
     
     Y = (np.array(response) > 600).astype(int)
@@ -63,35 +63,29 @@ def main():
     test['response'] = test_response
     
     ####################################
-    #  Initializa a_i = 0 for all points #
+    #  Initializa a_i = 1/N for all points #
     ####################################
     
     alpha = [1.0 / len(train.iloc[:,0])] * len(train.iloc[:,0])
     train['alpha'] = alpha
-    
+
     features = train.columns
-    train = train.iloc[range(1000),:]
-    
+
     features = features.drop("alpha").drop("response")
     
     df = pd.DataFrame.from_items([('A', [1, 1, 1, 1]), ('B', [1, 1, 0,0])])
-    df['response'] = [1,1,0,0]
-    df['alpha'] = [0.25,0.25,0.25,0.25]
-    print df
-    
+    df['response'] = [1,1,-1,-1]
+    df['alpha'] = [0.25,0.25,0.25,0.25]    
     weights,splits = learn_booster(train, 10, features)
     print weights
-#     print train.shape
-#     trained_root = open('trained_weights.obj', 'wb')
-#     pickle.dump(weights,trained_root)
+    print train.shape
+    trained_root = open('trained_weights.obj', 'wb')
+    pickle.dump(weights,trained_root)
  
-    test = test.iloc[range(1000),:]
-     
-    #### TO RUN ON TRAIN REMOVE ALPHA
-#     train = train.drop("alpha",axis=1)
-#     error = classifyData(test, weights, splits)
-#     print error
-      
+    print sum((test['response'] == 1).astype(int))
+    ### TO RUN ON TRAIN REMOVE ALPHA
+    error = classifyData(test, weights, splits)
+    print error
     ##### 
     # Professional sklearn attempt
     #####
@@ -124,12 +118,15 @@ def learn_booster(X, T, features):
         #### get the best feature by its best possible min error
         val_split, minError = min_error_split(X, to_split_on, feature)
         splits[feature] = val_split
-        weights[feature] = 1
+        weights[feature] = 0
     
     for iteration in range(T):
+
         chosenFeature, chosenError = find_best_feature(X, features,splits)
+        print chosenError
         weights[chosenFeature] = 0.5 * np.log((1 - chosenError) / chosenError)
         X = recompute_alphas(X, weights, splits, feature)
+  
     return weights,splits
         
 def classifyData(X,weights,splits):
@@ -142,9 +139,12 @@ def classifyData(X,weights,splits):
         computed_response  = 0
         for key in splits.keys():
             value = splits[key]
-            computed_response+= (row[key] >= value) * weights[key]
+            classify = row[key] >= value
+            if(classify == 0):
+                classify = -1
+            computed_response+= (classify) * weights[key]
         computed_response = np.sign(computed_response)
-        error+= abs(response.iloc[i] - computed_response)  
+        error+= abs(response.iloc[i] - computed_response) / 2.0
         
     return error
           
@@ -155,15 +155,17 @@ def recompute_alphas(X, weights, splits,feature):
     computed_values = (X[feature] >= split).astype(int)
     VectorOfError = np.abs(response - computed_values)
     together = zip(VectorOfError,X['alpha'])
+    new_alpha = []
     feature_index = X.columns.tolist().index(feature)
     for i, value in enumerate(together):
         error = value[0]
         value = value[1]
         weight = weights[feature]
         if(error  == 0):
-            X.iloc[i,feature_index] = value * np.exp(weight * -1)
+            new_alpha.append(value * np.exp(weight * -1))
         else:
-            X.iloc[i,feature_index] = value * np.exp(weight)
+            new_alpha.append(value * np.exp(weight * 1))
+    X['alpha'] = new_alpha
     return X
 ##############################################
 #    Find the best feature to first split on #
@@ -187,8 +189,7 @@ def classification_error(X,split,feature):
     classification = X[feature]
     classification = (classification >= split).astype(float)
     classification[classification == 0]  = -1
-    classification = classification / 2.0
-    error = sum(X['alpha'] *abs( (classification - response)))
+    error = sum(X['alpha'] *abs( (classification - response))) / 2.0
     error = error / sum(X['alpha'])
 
     return error
