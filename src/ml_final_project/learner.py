@@ -159,13 +159,6 @@ def min_error_split(X,ToSplitOn,feature):
         classification = X[feature]
         classification = (classification >= val).astype(int)
         error = sum(abs(classification - response))
-#         ones = sum(classification)
-#         zeros = len(X[feature]) - ones
-#         error = 0
-#         if(ones > zeros):
-#             error = sum(np.abs(response - np.ones(len(X.iloc[:,0]))))
-#         else:
-#             error = sum(np.abs(response - np.zeros(len(X.iloc[:,0]))))
         if(error < minError):
             minError = error
             minErrorIndex = i
@@ -229,6 +222,8 @@ def main():
     train['response'] = Y
     test['response'] = test_response
     
+    print len(test_response)
+    sys.exit(0)
     #######################################
     #    Test Tree Learner            #
     ####################################### 
