@@ -1,7 +1,54 @@
 '''
 Created on Mar 5, 2017
 
-@author: leem42
+@author: Michael Lee, Jonothan Wolf
+
+ada_booster program implements a binary classification using depth-one decision trees. 
+The program learns by fitting itself to a data set with given output labels and adjusts dynamically
+to focus on data points that it missclassified. This implementation focuses on data with continuous values 
+for its feature.
+
+This class implements the algorithm described at [1]
+
+Command Line Instructions
+----------
+    To run ada_booster on  on a test data set do as follows:
+    python ada_booster.py TRAIN TEST
+    
+    TRAIN
+        This is the train data being used to learn the algorithm, this data set must be a file in the local directory 
+        that is in .csv format. A note on the format, this data set must contain the output for each observation in a
+         column named 'response', so TRAIN['response'] would return a column of the response variables for each 
+         observation.
+    
+    TEST
+        This is the data to make predictions on, if there is a column 'response' then the program will print out its 
+        accuracy on this table, otherwise it will only print out it predictions.
+
+
+Parameters
+----------
+    X: This is the training data that the model learn on. This matrix must include the response variable
+    in a column saved as 'response'.
+    
+
+Attributes
+----------
+
+    Predict:
+    
+    Weights:
+    
+    Splits:
+    
+
+References
+
+----------
+    
+    [1] https://courses.cs.washington.edu/courses/cse446/17wi/slides/boosting-kNNclassification-annotated.pdf
+    (Slide 2)
+    
 '''
     
     
@@ -11,6 +58,7 @@ import pickle
 import sys
 from numpy import log
 import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
 
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.tree import DecisionTreeClassifier
@@ -27,8 +75,6 @@ def main():
           
     train_file = open('response_train_updated.obj', 'rb')
     response = pickle.load(train_file)
-      
-
       
     train_file = open('test_with_nearest.obj', 'rb')
     test = pickle.load(train_file)
@@ -49,12 +95,12 @@ def main():
     #  Convert response to -1,1 values  #
     ####################################
     
-    Y = (np.array(response) > 600).astype(int)
+    Y = (np.array(response) >= 238).astype(int)
     for i in range(len(Y)):
         if(Y[i] == 0):
             Y[i]= -1
 
-    test_response  = (np.array(test_response) > 600).astype(int)
+    test_response  = (np.array(test_response) >= 238).astype(int)
     for i in range(len(test_response)):
         if(test_response[i] == 0):
             test_response[i]= -1        
@@ -62,30 +108,51 @@ def main():
     train['response'] = Y
     test['response'] = test_response
     
-    ####################################
+    ###################################
     #  Initializa a_i = 1/N for all points #
     ####################################
     
     alpha = [1.0 / len(train.iloc[:,0])] * len(train.iloc[:,0])
     train['alpha'] = alpha
-
+    
     features = train.columns
-
     features = features.drop("alpha").drop("response")
     
-    df = pd.DataFrame.from_items([('A', [1, 1, 1, 1]), ('B', [1, 1, 0,0])])
-    df['response'] = [1,1,-1,-1]
-    df['alpha'] = [0.25,0.25,0.25,0.25]    
-    weights,splits = learn_booster(train, 10, features)
-    print weights
-    print train.shape
-    trained_root = open('trained_weights.obj', 'wb')
-    pickle.dump(weights,trained_root)
- 
-    print sum((test['response'] == 1).astype(int))
+    T  = [1,2,3,4,5,10,20,50,100,200,500]
+    bestT = None
+    errorForT = 99999999999999999999
+    split = None
+    bestSplit = {}
+    bestWeights = {}
+    for t in T :
+        result = {}
+        error = 0
+        for subset in range(5):
+            train_subset, validation = train_test_split(train, test_size = 0.2)
+            weights,splits = learn_booster(train_subset, t, features)
+            error+= classifyData(validation, weights, splits)
+            result = weights
+            split = splits
+        print "T is : " + str(t)
+        average_error = error / 5.0
+        print "Error for t is:" + str(average_error)
+        if(average_error < errorForT ):
+            bestT = t
+            bestWeights = result
+            bestSplit = split
+            errorForT = average_error
+        ##### Save resulting weight objects
+        trained_weight = open('trained_weight_' + str(T) + '.obj', 'wb')
+        pickle.dump(result,trained_weight)
+
+    print "Best value of t and its error below"
+    print bestT
+    print errorForT
     ### TO RUN ON TRAIN REMOVE ALPHA
-    error = classifyData(test, weights, splits)
+    
+    error = classifyData(test, bestWeights, bestSplit)
     print error
+    
     ##### 
     # Professional sklearn attempt
     #####
@@ -94,14 +161,28 @@ def main():
 #     bdt = AdaBoostClassifier(DecisionTreeClassifier(max_depth=1),
 #                          algorithm="SAMME",
 #                          )
-#     train = train.drop('response',axis=1).drop('alpha',axis=1)
-#     bdt.fit(train,Y[0:1000])
+#     train = train.drop('response',axis=1)
+#     bdt.fit(train,Y)
 #     test = test.drop("response",axis=1)
-#     print train.shape
-#     print test.shape
-#     output = sum(np.abs(bdt.predict(test) - test_response[0:1000]))
+#     output = sum(np.abs(bdt.predict(test) - test_response)) / 2
 #     print output
     
+'''
+    Parameters
+    ----------
+    X:
+        The data matrix being trained on
+    
+    T:
+        The number of iterations 
+        
+    Features:
+        The name of the features used in data matrix X
+
+    Output
+    ----------
+
+'''
 def learn_booster(X, T, features):
     
     weights = {}
@@ -126,7 +207,10 @@ def learn_booster(X, T, features):
         print chosenError
         weights[chosenFeature] = 0.5 * np.log((1 - chosenError) / chosenError)
         X = recompute_alphas(X, weights, splits, feature)
-  
+        normalized_alpha = X['alpha']
+        normalized_alpha = normalized_alpha / sum(normalized_alpha)
+        X['alpha'] = normalized_alpha
+     
     return weights,splits
         
 def classifyData(X,weights,splits):

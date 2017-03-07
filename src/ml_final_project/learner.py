@@ -22,7 +22,7 @@ from sklearn.linear_model.sgd_fast import Classification
 TRAININING_DATA = pickle.load(open('train_with_nearest.obj', 'rb'))
 RESULT = pickle.load(open('response_train_updated.obj', 'rb'))
 RESULT = np.array(RESULT)
-RESULT = (RESULT > 600).astype(int)
+RESULT = (RESULT >= 238).astype(int)
 TRAININING_DATA['response'] = RESULT
 
 
@@ -206,7 +206,7 @@ def main():
     train = train.drop("ParticipantBarcode",axis=1)
     train = train.drop("original_gene_symbol",axis=1) 
     train = train.drop("locations",axis=1)
-    train['response'] = response
+#     train['response'] = response
     
     test = test.drop("ParticipantBarcode",axis=1)
     test = test.drop("original_gene_symbol",axis=1) 
@@ -215,15 +215,14 @@ def main():
     
     Y = np.zeros((len(train.iloc[:,0]),))
     for i in range(len(train.iloc[:,0])):
-        Y[i] = response[i] > 600
+        Y[i] = response[i] >= 238
     for i in range(len(test_response[:])):
-        test_response[i] = test_response[i] > 600
+        test_response[i] = test_response[i] >= 238
         
-    train['response'] = Y
-    test['response'] = test_response
+#     train['response'] = Y
+#     test['response'] = test_response
     
-    print len(test_response)
-    sys.exit(0)
+#     print len(test_response)
     #######################################
     #    Test Tree Learner            #
     ####################################### 
@@ -234,31 +233,32 @@ def main():
     #######################################
     #    Decision Tree Learner   Train    #
     #######################################  
-    train = train.iloc[:,:]
-
-    root = decision_tree(train, train.columns)
-    trained_root = open('trained_root_diff.obj', 'wb')
-    pickle.dump(root,trained_root)
+#     train = train.iloc[:,:]
+# 
+#     root = decision_tree(train, train.columns)
+#     trained_root = open('trained_root_diff.obj', 'wb')
+#     pickle.dump(root,trained_root)
       
     #######################################
     #    Decision Tree Classify            #
     #######################################  
-    print
-    error = classify_data(train, root)
-    print error
-    test = test.iloc[:,:]
-    error = classify_data(test, root)
-    print error
+#     print
+#     error = classify_data(train, root)
+#     print error
+#     test = test.iloc[:,:]
+#     error = classify_data(test, root)
+#     print error
     
     #######################################
     #    The Dream                       #
     #######################################  
-#     clf = tree.DecisionTreeClassifier()
-#     clf = clf.fit(train, Y)
-#     error = sum(np.square(test_response - clf.predict(test))) 
-#     
-#     print error
-#     print len(test_response)
+
+    
+    clf = tree.DecisionTreeClassifier()
+    clf = clf.fit(train, Y)
+    error = sum(np.abs(test_response - clf.predict(test))) 
+     
+    print error
 
 
 
