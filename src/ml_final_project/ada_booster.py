@@ -25,23 +25,6 @@ Command Line Instructions
         This is the data to make predictions on, if there is a column 'response' then the program will print out its 
         accuracy on this table, otherwise it will only print out it predictions.
 
-
-Parameters
-----------
-    X: This is the training data that the model learn on. This matrix must include the response variable
-    in a column saved as 'response'.
-    
-
-Attributes
-----------
-
-    Predict:
-    
-    Weights:
-    
-    Splits:
-    
-
 References
 
 ----------
@@ -166,25 +149,32 @@ def main():
 #     test = test.drop("response",axis=1)
 #     output = sum(np.abs(bdt.predict(test) - test_response)) / 2
 #     print output
+   
+   
     
-'''
+def learn_booster(X, T, features):
+    '''
     Parameters
     ----------
     X:
         The data matrix being trained on
     
     T:
-        The number of iterations 
+        The number of iterations to run on the learn booster
         
     Features:
         The name of the features used in data matrix X
 
-    Output
+    Returns
     ----------
+    Weights:
+        Dictionary, where the keys are the features to use and the values are the values to split the feature on.
+        A single key-value pair then represents a single decision tree 
+        
+    Splits:
+        
 
-'''
-def learn_booster(X, T, features):
-    
+    '''
     weights = {}
     splits = {}
     
