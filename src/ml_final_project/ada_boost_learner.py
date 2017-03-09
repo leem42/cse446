@@ -42,11 +42,11 @@ import sys
 from numpy import log
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
-
+import time
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.datasets import make_gaussian_quantiles
-
+import time
 
 def main():
 
@@ -62,11 +62,11 @@ def main():
 
     features = train.columns
     features = features.drop("response")
-    
-    T  = [10,20,50,100,200,500]
-    weights = learn_booster(train, 10, features)
-    error = classifyData(test, weights)
-    print error
+#     
+    T  = [20,50,100,200,500]
+#     weights = learn_booster(train, 10, features)
+#     error = classifyData(test, weights)
+#     print error
     
     bestT = None
     errorForT = 99999999999999999999
@@ -75,13 +75,14 @@ def main():
     for t in T :
         result = {}
         error = 0
-        for subset in range(5):
+        print "T is : " + str(t)
+        for subset in range(2):
             train_subset, validation = train_test_split(train, test_size = 0.2)
             weights = learn_booster(train_subset, t, features)
             error+= classifyData(validation, weights)
+            print error
             result = weights
-        print "T is : " + str(t)
-        average_error = error / 5.0
+        average_error = error / 2.0
         print "Error for t is:" + str(average_error)
         if(average_error < errorForT ):
             bestT = t
@@ -142,20 +143,23 @@ def learn_booster(X, T, features):
         #############################################
         # Step One: Generate Next Best Weak Learner #
         #############################################
+        start = time.time()
         chosenFeature, value_of_split, chosenError = find_best_feature_with_alpha(X,features,alpha)
-        print 'chosen Feature and its split'
-        print chosenFeature
-        print value_of_split
+        end = time.time()
+        print 'time to get best feature: ' +  str(end - start)
+#         print 'chosen Feature and its split'
+#         print chosenFeature
+#         print value_of_split
         ################################################
         # Step Two: Compute weight for the new learner #
         ################################################
         if(chosenFeature not in weights):
             weights[chosenFeature] = []
-    
         new_weight = (0.5 * np.log((1 - chosenError) / chosenError))
         weights[chosenFeature].append((0.5 * np.log((1 - chosenError) / chosenError), value_of_split))
         alpha = recompute_alphas(X, new_weight,value_of_split, chosenFeature,alpha)
-        alpha = alpha/ np.sum(alpha)
+        alpha = alpha / np.sum(alpha)
+
      
     return weights
 
@@ -172,6 +176,7 @@ def find_best_feature_with_alpha(X,features,alpha):
         sorted_features = sorted_features[0:len(sorted_features) - 1]
         #### to_split_on is potential values to splot with
         ### May get many of the same feature, so we choose only unique splits
+        
         to_split_on = set(np.divide(np.add(sorted_features,additional_vector),2.0) )
         #### get the best feature by its best possible min error
         val_split, min_split_error = min_error_split(X, to_split_on, feature,alpha)
@@ -179,6 +184,8 @@ def find_best_feature_with_alpha(X,features,alpha):
             min_feature_error = min_split_error
             value_of_split = val_split
             feature_index = feature
+    if(feature_index == 0):
+        print 'hi'
  
     return feature_index, value_of_split, min_feature_error   
       
@@ -193,7 +200,7 @@ def classifyData(X,weights):
             for value in weights[key]:
                 weight = value[0]
                 split = value[1]
-                classify = row[key] >= split
+                classify = row[key] > split
                 if(classify == 0):
                     classify = -1 
                 computed_response+= (classify) * weight
@@ -203,8 +210,9 @@ def classifyData(X,weights):
 def recompute_alphas(X, new_weight,last_split,feature,alpha):
     response = X['response']
     split = last_split
-    computed_values = (X[feature] >= split).astype(int)
-    VectorOfError = np.abs(response - computed_values)
+    computed_values = (X[feature] > split).astype(int)
+    computed_values[computed_values == 0] = -1
+    VectorOfError = np.abs(response - computed_values) / 2.0 ### NEW ADDITION TO RECOMPUTE ALPHAS: 2 was not prior
     together = zip(VectorOfError,alpha)
     new_alpha = []
     weight  = new_weight
@@ -215,6 +223,8 @@ def recompute_alphas(X, new_weight,last_split,feature,alpha):
             new_alpha.append(value * np.exp(weight * -1))
         else:
             new_alpha.append(value * np.exp(weight * 1))
+
+    
      
     return new_alpha
 
@@ -239,7 +249,7 @@ def find_best_feature(X,FeaturesToUse, splits):
 def classification_error(X,split,feature):
     response = X['response']
     classification = X[feature]
-    classification = (classification >= split).astype(float)
+    classification = (classification > split).astype(float)
     classification[classification == 0]  = -1
     error = sum(X['alpha'] *abs( (classification - response))) / 2.0
     error = error / sum(X['alpha'])
@@ -251,11 +261,10 @@ def min_error_split(X,ToSplitOn,feature,alpha):
     minError = 999999999999
     minErrorIndex = 0
     response = X['response']
-    
     for i, val in enumerate(ToSplitOn):
         error = 0
         classification = X[feature]
-        classification = (classification >= val).astype(int)
+        classification = (classification > val).astype(int)
         classification[classification == 0]  = -1
         error = alpha*np.abs(classification - response) / 2.0
         error = sum(error)

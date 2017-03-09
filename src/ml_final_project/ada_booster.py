@@ -192,7 +192,7 @@ def learn_booster(X, T, features):
         weights[feature] = 0
     
     for iteration in range(T):
-
+        start_time = time.time()
         chosenFeature, chosenError = find_best_feature(X, features,splits)
         print chosenError
         weights[chosenFeature] = 0.5 * np.log((1 - chosenError) / chosenError)
