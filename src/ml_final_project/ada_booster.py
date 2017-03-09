@@ -1,7 +1,7 @@
 '''
 Created on Mar 5, 2017
 
-@author: Michael Lee, Jonothan Wolf
+@author: Michael Lee, Jonathan Wolf
 
 ada_booster program implements a binary classification using depth-one decision trees. 
 The program learns by fitting itself to a data set with given output labels and adjusts dynamically

@@ -1,7 +1,7 @@
 '''
 Created on Mar 2, 2017
 
-@author: Michael Lee, Jonothan Wolf
+@author: Michael Lee, Jonathan Wolf
 
 ada_booster program implements a binary classification using depth-one decision trees. 
 The program learns by fitting itself to a data set with given output labels and adjusts dynamically
@@ -51,12 +51,9 @@ import pprint
 from sklearn.linear_model.sgd_fast import Classification
 
 
-TRAININING_DATA = pickle.load(open('train_with_nearest.obj', 'rb'))
-RESULT = pickle.load(open('response_train_updated.obj', 'rb'))
-RESULT = np.array(RESULT)
-RESULT = (RESULT >= 238).astype(int)
-TRAININING_DATA['response'] = RESULT
-
+TRAINING_DATA = pickle.load(open('train_data_simple.obj', 'rb'))
+TRAINING_DATA[TRAINING_DATA.response == -1] = 0
+MAX_DEPTH = 10
 
 class Node(object):
     def __init__(self):
@@ -69,14 +66,15 @@ class Node(object):
     def print_me(self,level):
         if(self == None):
             print "None"
-        out = str(self.feature_index) + '  \nValue: ' + str(self.feature_value) 
+        out = str(self.feature_index) + '  Value: ' + str(self.feature_value) 
         print "\t"*level+str(out)+"\n"
         if(self.left == None):
-            print "\t"*level+str("None")+"\n"
-        elif(self.right == None):
-            print "\t"*level+str("None")+"\n"
-        else:
+            print "\t"*level+str("Leaf : ") + str(self.classification)+"\n"
+        if(self.right == None):
+            print "\t"*level+str("Leaf : ") + str(self.classification) + "\n"
+        if(self.left != None):
             self.left.print_me(level+1)
+        if(self.right != None):
             self.right.print_me(level + 1)
         
 
@@ -115,14 +113,13 @@ def decision_tree(X, FeaturesToUse):
 #         Divide X into two chunks: less than split and greater or equal to the split
         print "Feature: " + str(column_name)
         print "Value of Feature: " + str(value_of_split)
-#         print
         left_data = X[X[column_name] <  value_of_split]    
         right_data = X[X[column_name] >= value_of_split]
         go_left = True
         go_right =True
         if(left_data.shape[0] == 0):
             current.left = Node()
-            classification =sum(TRAININING_DATA['response'])
+            classification =sum(TRAINING_DATA['response'])
             decision = None
             if(classification < 0.5 * len(X.iloc[:,0])):
                 decision = 0
@@ -132,7 +129,7 @@ def decision_tree(X, FeaturesToUse):
             current.left.classification = decision
         if(right_data.shape[0] == 0):
             current.right = Node()
-            classification =sum(TRAININING_DATA['response'])
+            classification =sum(TRAINING_DATA['response'])
             decision = None
             if(classification < 0.5 * len(X.iloc[:,0])):
                 decision = 0
@@ -221,40 +218,14 @@ def main():
     #######################################
     #    Open our data set                #
     #######################################    
-    train_file = open('train_with_nearest.obj', 'rb')
+    train_file = open('train_data_simple.obj', 'rb')
     train = pickle.load(train_file)
-          
-    train_file = open('response_train_updated.obj', 'rb')
-    response = pickle.load(train_file)
-      
+    train[train.response == -1] = 0
+    
+    test_file = open('test_simple_2,obj', 'rb')
+    test = pickle.load(test_file)
+    test[test.response == -1] = 0
 
-      
-    train_file = open('test_with_nearest.obj', 'rb')
-    test = pickle.load(train_file)
-      
-    train_file = open('response_test_updatedt.obj', 'rb')
-    test_response = pickle.load(train_file)  
-     
-    train = train.drop("ParticipantBarcode",axis=1)
-    train = train.drop("original_gene_symbol",axis=1) 
-    train = train.drop("locations",axis=1)
-#     train['response'] = response
-    
-    test = test.drop("ParticipantBarcode",axis=1)
-    test = test.drop("original_gene_symbol",axis=1) 
-    test = test.drop("locations",axis=1)
-
-    
-    Y = np.zeros((len(train.iloc[:,0]),))
-    for i in range(len(train.iloc[:,0])):
-        Y[i] = response[i] >= 238
-    for i in range(len(test_response[:])):
-        test_response[i] = test_response[i] >= 238
-        
-#     train['response'] = Y
-#     test['response'] = test_response
-    
-#     print len(test_response)
     #######################################
     #    Test Tree Learner            #
     ####################################### 
@@ -265,34 +236,36 @@ def main():
     #######################################
     #    Decision Tree Learner   Train    #
     #######################################  
-#     train = train.iloc[:,:]
-# 
+    train = train.iloc[:,:]
+    
 #     root = decision_tree(train, train.columns)
 #     trained_root = open('trained_root_diff.obj', 'wb')
 #     pickle.dump(root,trained_root)
-      
+#         
+    root = open('trained_root_diff.obj', 'rb')
+    root = pickle.load(root)
     #######################################
     #    Decision Tree Classify            #
     #######################################  
-#     print
-#     error = classify_data(train, root)
-#     print error
-#     test = test.iloc[:,:]
-#     error = classify_data(test, root)
-#     print error
-    
+    error = classify_data(train, root)
+    print error
+    test = test.iloc[:,:]
+    error = classify_data(test, root)
+    print error
+    print root.print_me(0)
+    print len(train.iloc[:,0])
     #######################################
     #    The Dream                       #
     #######################################  
 
     
-    clf = tree.DecisionTreeClassifier()
-    clf = clf.fit(train, Y)
-    error = sum(np.abs(test_response - clf.predict(test))) 
-     
-    print error
+#     clf = tree.DecisionTreeClassifier()
+#     clf = clf.fit(train, Y)
+#     error = sum(np.abs(test_response - clf.predict(test))) 
+#      
+#     print error
 
 
 
 if __name__ == '__main__':
-    main()'''
+    main()
