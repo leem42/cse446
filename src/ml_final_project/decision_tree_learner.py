@@ -69,7 +69,7 @@ class Node(object):
         out = str(self.feature_index) + '  Value: ' + str(self.feature_value) 
         print "\t"*level+str(out)+"\n"
         if(self.left == None):
-            print "\t"*level+str("Leaf : ") + str(self.classification)+"\n"
+            print "\t"*level+str("Leaf : ") +  str(self.classification)+"\n"
         if(self.right == None):
             print "\t"*level+str("Leaf : ") + str(self.classification) + "\n"
         if(self.left != None):
@@ -218,51 +218,53 @@ def main():
     #######################################
     #    Open our data set                #
     #######################################    
-    train_file = open('train_data_simple.obj', 'rb')
+    train_file = open('train_improved.obj', 'rb')
     train = pickle.load(train_file)
-    train[train.response == -1] = 0
+    train['response'] = (train['response'] >= 238).astype(int)
     
-    test_file = open('test_simple_2,obj', 'rb')
+    test_file = open('test_improved.obj', 'rb')
     test = pickle.load(test_file)
-    test[test.response == -1] = 0
+    test['response'] = (test['response'] >= 238).astype(int)
 
-    #######################################
-    #    Test Tree Learner            #
-    ####################################### 
-#     df = pd.DataFrame.from_items([('A', [1, 1, 1, 1]), ('B', [1, 1, 1,1])])
-#     df['response'] = [1,1,0,0]
-#     print df
 
     #######################################
     #    Decision Tree Learner   Train    #
-    #######################################  
-    train = train.iloc[:,:]
-    
+    #######################################    
+    train = train.drop_duplicates()
+    test = test.drop_duplicates() 
+#     
+#     merge = pd.merge(train,test,on=list(train.columns),how='inner')
+#      
 #     root = decision_tree(train, train.columns)
-#     trained_root = open('trained_root_diff.obj', 'wb')
+#     
+#     trained_root = open('trained_root_diff_notPerfect.obj', 'wb')
 #     pickle.dump(root,trained_root)
 #         
-    root = open('trained_root_diff.obj', 'rb')
-    root = pickle.load(root)
+#     root = open('trained_root_diff.obj', 'rb')
+#     root = pickle.load(root)
     #######################################
     #    Decision Tree Classify            #
     #######################################  
-    error = classify_data(train, root)
-    print error
-    test = test.iloc[:,:]
-    error = classify_data(test, root)
-    print error
-    print root.print_me(0)
-    print len(train.iloc[:,0])
+#     error = classify_data(train, root)
+#     print error
+#     error = classify_data(test, root)
+#     print error
+    
     #######################################
     #    The Dream                       #
     #######################################  
-
-    
-#     clf = tree.DecisionTreeClassifier()
+# 
+#     test_response = test['response']
+#     Y = train['response']
+#     train = train.drop('response',axis=1)
+#     test = test.drop('response',axis=1)
+#     clf = tree.DecisionTreeClassifier(max_depth=14)
 #     clf = clf.fit(train, Y)
 #     error = sum(np.abs(test_response - clf.predict(test))) 
-#      
+#     print error
+#     print clf.score(test,test_response)
+#     print
+# #      
 #     print error
 
 

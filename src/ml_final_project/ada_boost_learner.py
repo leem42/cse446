@@ -1,7 +1,7 @@
 '''
 Created on Mar 5, 2017
 
-@author: Michael Lee, Jonothan Wolf
+@author: Michael Lee, Jonathan Wolf
 
 ada_booster program implements a binary classification using depth-one decision trees. 
 The program learns by fitting itself to a data set with given output labels and adjusts dynamically
@@ -56,30 +56,39 @@ def main():
     #    Open our data set                #
     #######################################    
     
-    train_file = open('train_data_simple.obj', 'rb')
+    train_file = open('train_improved.obj', 'rb')
     train = pickle.load(train_file)
     
-    test_file = open('test_simple_2,obj', 'rb')
-    test = pickle.load(test_file)
-    
-    Y = train['response']
-    train = train.drop('response',axis=1)
-    tree = DecisionTreeClassifier(max_depth=1)
-    tree=tree.fit(train,Y)
-
+    test_file = open('test_improved.obj', 'rb')
+    test = pickle.load(test_file)   
+     
     features = train.columns
     features = features.drop("response")
-    print features
-    T  = [5,10,20,50,100,200,500]
-#     train = train.iloc[range(1000),:]
-#     test = test.iloc[range(500),:]
-#     train[train.response == -1] = 0
-#     test[test.response == -1] = 0
-#     weights = learn_booster(train, 10, features)
-#     error = classifyData(test, weights)
-#     print error
-#     sys.exit(0)
-#     bestT = None
+#     
+#     T  = [5,10,20,50,100,200,500]
+    response_mod  = train.iloc[:,13]
+    out = []
+    for value in response_mod:
+        if(value > 238):
+            out.append(1)
+        else:
+            out.append(-1)
+    train['response'] = out
+    
+    response_mod  = test.iloc[:,13]
+    out2 = []
+    for value in response_mod:
+        if(value > 238):
+            out2.append(1)
+        else:
+            out2.append(-1)
+    test['response'] = out2
+    
+    weights = learn_booster(train, 50, features)
+    error = classifyData(test, weights)
+    print error
+    sys.exit(0)
+# #     bestT = None
 #     errorForT = 99999999999999999999
 #     bestWeights = {}
 #     train = train.iloc[range(500),:]
@@ -114,8 +123,8 @@ def main():
     ##### 
     # Professional sklearn attempt
     #####
-    
-    
+#      
+#      
 #     bdt = AdaBoostClassifier(DecisionTreeClassifier(max_depth=1),
 #                          algorithm="SAMME",
 #                          )
@@ -124,7 +133,7 @@ def main():
 #     bdt.fit(train,Y)
 #     test_response = test['response']
 #     test = test.drop("response",axis=1)
-# #     print bdt.predict(test)
+#     print bdt.predict(test)
 #     output = sum(np.abs(bdt.predict(test) - test_response)) / 2
 #     print output
 #     pca = PCA().fit(train,Y)
@@ -153,7 +162,7 @@ def learn_booster(X, T, features):
 
     '''
     weights = {}
-    alpha = [1.0 / len(X.iloc[:,0])] * len(X.iloc[:,0])
+    alpha = [1.0 ] * len(X.iloc[:,0])
     for iteration in range(T):
         #############################################
         # Step One: Generate Next Best Weak Learner #
@@ -167,7 +176,7 @@ def learn_booster(X, T, features):
         ################################################################
         if(chosenFeature not in weights):
             weights[chosenFeature] = []
-        new_weight = (0.5 * np.log((1 - chosenError) / chosenError))
+        new_weight = ( np.log((1 - chosenError) / chosenError))
         weights[chosenFeature].append((0.5 * np.log((1 - chosenError) / chosenError), value_of_split))
         alpha = recompute_alphas(X, new_weight,value_of_split, chosenFeature,alpha)
         alpha = alpha / np.sum(alpha)
@@ -189,7 +198,15 @@ def find_best_feature_with_alpha(X,features,alpha):
         #### to_split_on is potential values to splot with
         ### May get many of the same feature, so we choose only unique splits
         
-        to_split_on = set(np.divide(np.add(sorted_features,additional_vector),2.0) )  
+        to_split_on = set(np.divide(np.add(sorted_features,additional_vector),2.0) )
+        nearest = []
+        if(feature == 'NearestMutation'):
+            to_split_on = list(to_split_on)
+            for i in range(1, 87):
+                splitIndex = 90 * i
+                nearest.append(to_split_on[splitIndex])
+            to_split_on = nearest
+            
         end = time.time()
 #         print 'time to get sort: ' +  str(end - start)
 #         print 'length of split ' + str(len(to_split_on))
@@ -217,18 +234,18 @@ def classifyData(X,weights):
             for value in weights[key]:
                 weight = value[0]
                 split = value[1]
-                classify = row[key] >= split
+                classify = (row[key] > split).astype(int)
                 if(classify == 0):
                     classify = -1 
                 computed_response+= (classify) * weight
         computed_response = np.sign(computed_response)
-        error+= abs(response.iloc[i] - computed_response) 
-    return error / 2.0
+        error+= abs(response.iloc[i] - computed_response) / 2.0
+    return error 
 
 def recompute_alphas(X, new_weight,last_split,feature,alpha):
     response = X['response']
     split = last_split
-    computed_values = (X[feature] >= split).astype(int)
+    computed_values = (X[feature] > split).astype(int)
     computed_values[computed_values == 0] = -1
     VectorOfError = np.abs(response - computed_values) / 2.0
     together = zip(VectorOfError,alpha)
@@ -240,9 +257,8 @@ def recompute_alphas(X, new_weight,last_split,feature,alpha):
         if(error  == 0):
             new_alpha.append(value * np.exp(weight * -1))
         else:
-            new_alpha.append(value * np.exp(weight * 1))
+            new_alpha.append(value )
 
-    
      
     return new_alpha
 
@@ -267,7 +283,7 @@ def find_best_feature(X,FeaturesToUse, splits):
 def classification_error(X,split,feature):
     response = X['response']
     classification = X[feature]
-    classification = (classification >= split).astype(float)
+    classification = (classification > split).astype(float)
     classification[classification == 0]  = -1
     error = sum(X['alpha'] *abs( (classification - response))) / 2.0 
     error = error / sum(X['alpha'])
@@ -282,10 +298,10 @@ def min_error_split(X,ToSplitOn,feature,alpha):
     for i, val in enumerate(ToSplitOn):
         error = 0
         classification = X[feature]
-        classification = (classification >= val).astype(int)
+        classification = (classification > val).astype(int)
         classification[classification == 0]  = -1
-        error = alpha*np.abs(classification - response)  / 2.0
-        error = sum(error)
+        error = alpha*np.abs(classification - response)
+        error = sum(error) / 2.0
         error = error / sum(alpha)
         if(error < minError):
             minError = error
