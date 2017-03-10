@@ -106,7 +106,7 @@ def decision_tree(X, FeaturesToUse):
                 current.classification = 0
             return current
         # recursive case
-        feature_index, value_of_split = find_best_feature(X,FeaturesToUse)
+        feature_index, value_of_split, output_class = find_best_feature(X,FeaturesToUse)
         column_name = feature_index
         print column_name
         FeaturesToUse = FeaturesToUse.drop(column_name)
@@ -117,7 +117,7 @@ def decision_tree(X, FeaturesToUse):
         right_data = X[X[column_name] >= value_of_split]
         go_left = True
         go_right =True
-        if(left_data.shape[0] == 0):
+        if(left_data.shape[0] == 0): 
             current.left = Node()
             classification =sum(TRAINING_DATA['response'])
             decision = None
@@ -156,6 +156,7 @@ def find_best_feature(X,FeaturesToUse):
     feature_index = 0
     value_of_split = None
     SansResponse = FeaturesToUse.drop("response")
+    bestClass = None
     for feature in SansResponse:
         #### Sort features into new columns
         sorted_features = np.sort(X[feature])
@@ -166,34 +167,46 @@ def find_best_feature(X,FeaturesToUse):
         ### May get many of the same feature, so we choose only unique splits
         to_split_on = set(np.divide(np.add(sorted_features,additional_vector),2.0) )
         #### get the best feature by its best possible min error
-        val_split, min_split_error = min_error_split(X, to_split_on, feature)
+        val_split, min_split_error,output_class = min_error_split(X, to_split_on, feature)
         if(min_split_error < min_feature_error):
             min_feature_error = min_split_error
             value_of_split = val_split
             feature_index = feature
-    if(feature_index == 0):
-        print
-    return feature_index, value_of_split
+            bestClass = output_class
+    
+    return feature_index, value_of_split, bestClass
             
         
 
 # calculate the classification errors for each value in the ToSplitOn parameter
 def min_error_split(X,ToSplitOn,feature):
     minError = 999999999999
-    minErrorIndex = 0
+    minErrorValue = 0
     response = X['response']
-    
+    final_output_class = None
     for i, val in enumerate(ToSplitOn):
         error = 0
         classification = X[feature]
-        classification = (classification >= val).astype(int)
-        error = sum(abs(classification - response))
+        
+        upper_split = (classification > val).astype(int)
+        upper_error = sum(np.abs(upper_split - response))
+        
+        lower_split = (classification <= val).astype(int)
+        lower_error = sum(np.abs(lower_split - response))
+        
+        output_class = 0
+        if(upper_error > lower_error):
+            output_class = 0
+        else:
+            output_class = 1
+        error = min(lower_error,upper_error)
+        
         if(error < minError):
             minError = error
-            minErrorIndex = i
+            minErrorValue = val
+            final_output_class = output_class
     
-    val_of_split = X[feature].iloc[minErrorIndex]
-    return val_of_split, minError
+    return minErrorValue, minError, final_output_class
             
 def classify_data(X,root):
     error = 0
@@ -230,12 +243,12 @@ def main():
     #######################################
     #    Decision Tree Learner   Train    #
     #######################################    
-    train = train.drop_duplicates()
-    test = test.drop_duplicates() 
+#     train = train.drop_duplicates()
+#     test = test.drop_duplicates() 
 #     
 #     merge = pd.merge(train,test,on=list(train.columns),how='inner')
 #      
-#     root = decision_tree(train, train.columns)
+    root = decision_tree(train, train.columns)
 #     
 #     trained_root = open('trained_root_diff_notPerfect.obj', 'wb')
 #     pickle.dump(root,trained_root)
@@ -245,10 +258,10 @@ def main():
     #######################################
     #    Decision Tree Classify            #
     #######################################  
-#     error = classify_data(train, root)
-#     print error
-#     error = classify_data(test, root)
-#     print error
+    error = classify_data(train, root)
+    print error
+    error = classify_data(test, root)
+    print error
     
     #######################################
     #    The Dream                       #

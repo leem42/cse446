@@ -84,7 +84,15 @@ def main():
             out2.append(-1)
     test['response'] = out2
     
-    weights = learn_booster(train, 50, features)
+#     train = train.iloc[range(500),:]
+#     test = test.iloc[range(500),:]
+    
+    
+    df = pd.DataFrame.from_items([('A', [1, 1, 1, 1]), ('B', [1, 1, 0,0])])
+    df['response'] = [1,1,1,-1]
+    weights = learn_booster(train, 15, features)
+    print classifyData(train,weights)
+    print weights
     error = classifyData(test, weights)
     print error
     sys.exit(0)
@@ -162,22 +170,27 @@ def learn_booster(X, T, features):
 
     '''
     weights = {}
-    alpha = [1.0 ] * len(X.iloc[:,0])
+    alpha = [1.0/len(X.iloc[:,0]) ] * len(X.iloc[:,0])
     for iteration in range(T):
         #############################################
         # Step One: Generate Next Best Weak Learner #
         #############################################
         start = time.time()
-        chosenFeature, value_of_split, chosenError = find_best_feature_with_alpha(X,features,alpha)
+        chosenFeature, value_of_split, chosenError, output_class = find_best_feature_with_alpha(X,features,alpha)
         end = time.time()
         print 'time to get best feature: ' +  str(end - start)
+        print ' with error ' + str(chosenError)
         ################################################################
         # Step Two: Compute weight for the new learner and update alpha#
         ################################################################
         if(chosenFeature not in weights):
             weights[chosenFeature] = []
-        new_weight = ( np.log((1 - chosenError) / chosenError))
-        weights[chosenFeature].append((0.5 * np.log((1 - chosenError) / chosenError), value_of_split))
+        new_weight = 0
+        if(chosenError == 0):
+            new_weight = 100
+        else:
+            new_weight = (0.5* np.log((1 - chosenError) / chosenError))
+        weights[chosenFeature].append((new_weight, value_of_split,output_class))
         alpha = recompute_alphas(X, new_weight,value_of_split, chosenFeature,alpha)
         alpha = alpha / np.sum(alpha)
 
@@ -188,6 +201,7 @@ def find_best_feature_with_alpha(X,features,alpha):
     min_feature_error = 999999999999
     feature_index = 0
     value_of_split = None
+    min_output_class = 0
     for feature in features:
         #### Sort features into new columns
         start = time.time()
@@ -202,7 +216,7 @@ def find_best_feature_with_alpha(X,features,alpha):
         nearest = []
         if(feature == 'NearestMutation'):
             to_split_on = list(to_split_on)
-            for i in range(1, 87):
+            for i in range(1, 5):
                 splitIndex = 90 * i
                 nearest.append(to_split_on[splitIndex])
             to_split_on = nearest
@@ -211,17 +225,15 @@ def find_best_feature_with_alpha(X,features,alpha):
 #         print 'time to get sort: ' +  str(end - start)
 #         print 'length of split ' + str(len(to_split_on))
         #### get the best feature by its best possible min error
-        val_split, min_split_error = min_error_split(X, to_split_on, feature,alpha)
+        val_split, min_split_error, output_class = min_error_split(X, to_split_on, feature,alpha)
 #         print feature
 #         print min_split_error
         if(min_split_error < min_feature_error):
             min_feature_error = min_split_error
             value_of_split = val_split
             feature_index = feature
-    if(feature_index == 0):
-        print 'hi'
- 
-    return feature_index, value_of_split, min_feature_error   
+            min_output_class = output_class
+    return feature_index, value_of_split, min_feature_error, min_output_class  
       
 def classifyData(X,weights):
     response = X['response']
@@ -234,7 +246,12 @@ def classifyData(X,weights):
             for value in weights[key]:
                 weight = value[0]
                 split = value[1]
-                classify = (row[key] > split).astype(int)
+                output_class = value[2]
+                if(output_class == 1):
+                    classify = (row[key] > split).astype(int)
+                else:
+                    classify = (row[key] <= split).astype(int)
+                    
                 if(classify == 0):
                     classify = -1 
                 computed_response+= (classify) * weight
@@ -242,24 +259,20 @@ def classifyData(X,weights):
         error+= abs(response.iloc[i] - computed_response) / 2.0
     return error 
 
-def recompute_alphas(X, new_weight,last_split,feature,alpha):
+def recompute_alphas(X, weight,split,feature,alpha):
     response = X['response']
-    split = last_split
     computed_values = (X[feature] > split).astype(int)
     computed_values[computed_values == 0] = -1
     VectorOfError = np.abs(response - computed_values) / 2.0
     together = zip(VectorOfError,alpha)
     new_alpha = []
-    weight  = new_weight
     for i, value in enumerate(together):
         error = value[0]
         value = value[1]
         if(error  == 0):
             new_alpha.append(value * np.exp(weight * -1))
         else:
-            new_alpha.append(value )
-
-     
+            new_alpha.append(value * np.exp(weight))
     return new_alpha
 
 ##############################################
@@ -293,42 +306,38 @@ def classification_error(X,split,feature):
 # calculate the classification errors for each value in the ToSplitOn parameter
 def min_error_split(X,ToSplitOn,feature,alpha):
     minError = 999999999999
-    minErrorIndex = 0
+    minErrorVal = 0
     response = X['response']
+    min_output_class = None
     for i, val in enumerate(ToSplitOn):
         error = 0
         classification = X[feature]
-        classification = (classification > val).astype(int)
-        classification[classification == 0]  = -1
-        error = alpha*np.abs(classification - response)
-        error = sum(error) / 2.0
-        error = error / sum(alpha)
+        
+        upper_split = (classification > val).astype(int)
+        upper_split[upper_split == 0]  = -1
+        upper_error = alpha*np.abs(upper_split - response)
+        upper_error = sum(upper_error) / 2.0
+        upper_error = upper_error / sum(alpha)
+        
+        lower_split = (classification <= val).astype(int)
+        lower_split[lower_split == 0]  = -1
+        lower_error = alpha*np.abs(lower_split - response)
+        lower_error = sum(lower_error) / 2.0
+        lower_error = lower_error / sum(alpha)
+        
+        output_class = 0
+        if(upper_error > lower_error):
+            output_class = -1
+        else:
+            output_class = 1
+        error = min(lower_error,upper_error)
+        
         if(error < minError):
             minError = error
-            minErrorIndex = i
-#             
-#     def my_func(v,split):
-#         return (v >= split).astype(int)
-#     
-#     def set_to_minus_one(v):
-#         v[v == 0] = -1
-#         return v
-#     
-#     def get_error(v,alpha,response):
-#         error = alpha*np.abs(classification - response) / 2.0
-#         error = sum(error)
-#         error = error / sum(alpha)
-#         
-#     classification = np.tile(X[feature], (len(ToSplitOn),1))
-#     ToSplitOn = np.array(ToSplitOn)
-#     classification = np.apply_along_axis(my_func, 0, ToSplitOn,classification)
-#     classification = np.apply_along_axis(set_to_minus_one, 1, classification)
-#     classification = np.apply_along_axis(my_func, 1,classification, alpha,response)
-#     
-#     best = np.argmin(classification)
+            minErrorVal = val
+            min_output_class = output_class
 
-    val_of_split = X[feature].iloc[minErrorIndex]
-    return val_of_split, minError
+    return minErrorVal, minError, min_output_class
     
 if __name__ == '__main__':
     main()
