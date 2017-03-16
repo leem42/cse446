@@ -51,9 +51,10 @@ import pprint
 from sklearn.linear_model.sgd_fast import Classification
 
 
-TRAINING_DATA = pickle.load(open('train_data_simple.obj', 'rb'))
-TRAINING_DATA[TRAINING_DATA.response == -1] = 0
-MAX_DEPTH = 10
+TRAINING_DATA = pickle.load(open('train_improved.obj', 'rb'))
+median = np.median(TRAINING_DATA['response'])
+TRAINING_DATA['response'] = (TRAINING_DATA['response'] >= median).astype(int)
+MAX_DEPTH = 14
 
 class Node(object):
     def __init__(self):
@@ -89,17 +90,18 @@ def simpleBuildTree(level):
 ####################################
 #    Build Decision Tree          #
 ####################################
-def decision_tree(X, FeaturesToUse):
+def decision_tree(X, FeaturesToUse, depth):
+    
         current = Node()
         examples = X['response']
-        classification = sum(examples)
-        if( classification == 0):
+        classification = sum(examples)            
+        if(  classification == 0):
             current.classification = 0
             return current
         elif(classification == len(examples)):
             current.classification = 1
             return current
-        if(len(FeaturesToUse) == 1):    #
+        if(len(FeaturesToUse) == 1 or depth == MAX_DEPTH):    #
             if(classification >= len(examples) * 0.5):
                 current.classification = 1
             else:
@@ -113,6 +115,7 @@ def decision_tree(X, FeaturesToUse):
 #         Divide X into two chunks: less than split and greater or equal to the split
         print "Feature: " + str(column_name)
         print "Value of Feature: " + str(value_of_split)
+        print output_class
         left_data = X[X[column_name] <  value_of_split]    
         right_data = X[X[column_name] >= value_of_split]
         go_left = True
@@ -141,9 +144,9 @@ def decision_tree(X, FeaturesToUse):
         current.feature_index = feature_index
         current.feature_value = value_of_split
         if(go_left):
-            current.left = decision_tree(left_data, FeaturesToUse)
+            current.left = decision_tree(left_data, FeaturesToUse, depth+1)
         if(go_right):
-            current.right = decision_tree(right_data, FeaturesToUse) 
+            current.right = decision_tree(right_data, FeaturesToUse,depth+1) 
 
         return current
     
@@ -207,7 +210,10 @@ def min_error_split(X,ToSplitOn,feature):
             final_output_class = output_class
     
     return minErrorValue, minError, final_output_class
-            
+         
+# Using trained root classify the data X, where
+# X['response'] gives the response variables for 
+# each observation i
 def classify_data(X,root):
     error = 0
     if(root.left is None and root.right is None):
@@ -233,28 +239,19 @@ def main():
     #######################################    
     train_file = open('train_improved.obj', 'rb')
     train = pickle.load(train_file)
-    train['response'] = (train['response'] >= 238).astype(int)
+    median = np.median(train['response'])
+    train['response'] = (train['response'] >= median).astype(int)
     
     test_file = open('test_improved.obj', 'rb')
     test = pickle.load(test_file)
-    test['response'] = (test['response'] >= 238).astype(int)
-
-
+    test['response'] = (test['response'] >= median).astype(int)
+    
     #######################################
     #    Decision Tree Learner   Train    #
     #######################################    
-#     train = train.drop_duplicates()
-#     test = test.drop_duplicates() 
-#     
-#     merge = pd.merge(train,test,on=list(train.columns),how='inner')
-#      
-    root = decision_tree(train, train.columns)
-#     
-#     trained_root = open('trained_root_diff_notPerfect.obj', 'wb')
-#     pickle.dump(root,trained_root)
-#         
-#     root = open('trained_root_diff.obj', 'rb')
-#     root = pickle.load(root)
+
+    root = decision_tree(train, train.columns,0)
+
     #######################################
     #    Decision Tree Classify            #
     #######################################  
@@ -263,22 +260,6 @@ def main():
     error = classify_data(test, root)
     print error
     
-    #######################################
-    #    The Dream                       #
-    #######################################  
-# 
-#     test_response = test['response']
-#     Y = train['response']
-#     train = train.drop('response',axis=1)
-#     test = test.drop('response',axis=1)
-#     clf = tree.DecisionTreeClassifier(max_depth=14)
-#     clf = clf.fit(train, Y)
-#     error = sum(np.abs(test_response - clf.predict(test))) 
-#     print error
-#     print clf.score(test,test_response)
-#     print
-# #      
-#     print error
 
 
 
